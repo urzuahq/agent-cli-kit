@@ -158,9 +158,12 @@ runner's receipt embeds a run report, and each of its checks takes its `scope` f
 ### 9. What changes in RFC-1
 
 When this RFC is accepted, RFC-1 gains a revision row pointing here, and its text is brought into
-line in three places. §3 lists `run` among the profiles and says `contract_version` is `"1.1"` from
-this release. §3's sentence that a command may state its `kind` is unchanged. §6 lists
+line. Its Summary says the contract has two layers and then names a third profile. §3 lists `run`
+among the profiles and says `contract_version` is `"1.1"` from this release. §6 lists
 `run-report.schema.json` among the schemas. Nothing in RFC-1's base layer or gate profile changes.
+
+Outside the record, `describe.schema.json` adds `run` to its `profile` list, `finding.schema.json`
+adds `check`, and the README's table of layers and its statement of the contract's version follow.
 
 ### 10. Version and release
 
