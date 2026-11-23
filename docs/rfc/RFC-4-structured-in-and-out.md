@@ -297,7 +297,9 @@ contract that stays put, and one settled 1.1 serves that better than a 1.1 follo
 - The examples follow. `examples/valid/describe.run-profile.json` prints `"1.1"` and gains its
   inputs, and each new rule gets a valid and an invalid example. The `"1.0"` examples are
   unchanged and stay valid.
-- RFC-1 §1, §3 and §6 are brought into line, with a revision row pointing here. The draft
+- RFC-1 §1, §3 and §6 are brought into line, with a revision row pointing here. §1 also says that
+  its exit codes are those of a command that prints its report on stdout: a hook's exit status is
+  the host's (§5). The draft
   amendment on stderr is replaced by §2 above. RFC-1 §4's rule on new JSON Schema keywords is a
   separate amendment and is unaffected.
 
