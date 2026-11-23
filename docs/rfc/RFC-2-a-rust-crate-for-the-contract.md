@@ -48,8 +48,9 @@ pinned by the tool's lockfile, works offline, and needs no drift check.
   `next_action`, `next_action_reason` and `next_action_inputs`, byte for byte what urzua prints
   today: two nulls and an empty array when there is no action. The crate flattens nothing itself.
   A tool may serialize `NextActionKeys` as it is, or copy its three values into fields of its own,
-  as urzua's one wrapper does under its ADR-46 amendment. The conversion runs both ways, and it is
-  the only way to build the keys, so a reason without an action cannot be printed
+  as urzua's one wrapper does under its ADR-46 amendment. `NextActionKeys` has no other
+  constructor, and it converts back to an `Option<NextAction>`, so the keys the crate builds never
+  carry a reason without an action
 - `Severity`: `error`, `warning`, `info`, ordered so that `error` is greater than `warning` and
   `warning` greater than `info`
 - `Examined`: a map from a unit name to a count, ordered by key so that output is stable
@@ -95,8 +96,10 @@ will.
 `ResultWord`. The receipt schema is a draft, and the feature name says the types can change in any
 release until it is not. `Receipt` is generic over the report it embeds, a check's `status` is a
 string and its `scope` is a JSON object with a `kind`, so that no tool's own types enter the crate.
-`tree`, `worktree` and `commit` are `ObjectId`s. `output_tail(text)` cuts a check's output to the
-schema's 4,000 characters on a character boundary, so that no writer derives the limit again.
+`tree` and `worktree` are `ObjectId`s and `commit` is an optional one. That is stricter than the
+draft schema, where `commit` is any string or null; the schema gains the hash pattern in the same
+change that adds these types. `output_tail(text)` keeps the last 4,000 characters of a check's
+output, cut on a character boundary, so that no writer derives the limit again.
 
 **The schemas as text.** The crate embeds the five schema files and exposes each as a `&'static str`
 constant, with the version they came from. This needs no dependency. A tool's lockfile then pins the
@@ -173,9 +176,9 @@ is and the embedded files are the checked ones, not a copy.
 The crate has its own version and its own tags, `crate-v<version>`. Schema releases keep the tags
 `v<major>.<minor>.<patch>` from RFC-1 §4.
 
-- The crate starts at `0.1.0`. Its Rust API will change while two tools adopt it, and a `0.x`
-  version says so. It moves to `1.0.0` when both tools build on it and neither has asked for a
-  breaking change for one release.
+- The crate's first release is `0.1.0`, after pre-releases `0.1.0-alpha.1` and up, each with its own
+  tag. Its Rust API will change while two tools adopt it, and a `0.x` version says so. It moves to
+  `1.0.0` when both tools build on it and neither has asked for a breaking change for one release.
 - Every crate release states the contract version it implements, in `CONTRACT_VERSION`, in its
   README, and in a table in this repository's README.
 - A schema release never waits for a crate release. The schemas are tagged first. The crate follows
@@ -236,11 +239,12 @@ copy to the embedded schemas once a release carries them.
 ### 8. Order of work
 
 1. This RFC is accepted.
-2. The crate lands in this repository at `0.1.0`, unpublished, with the tests of §6.
-3. A pre-release, `0.1.0-alpha.1`, is published to crates.io. Neither tool can merge a dependency
-   from any other source, so a pre-release is the only trial that runs in a tool's CI. It also
-   exercises the publishing path before a tool depends on it. garita trials it first, after its
-   own Phase 0 work, and reports what is wrong.
+2. The crate lands in this repository at `0.1.0-alpha.1`, unpublished, with the tests of §6.
+3. If the maintainer decides to publish (see the open questions), `0.1.0-alpha.1` is published to
+   crates.io from the tag `crate-v0.1.0-alpha.1`. Neither tool can merge a dependency from any other
+   source, so a pre-release is the only trial that runs in a tool's CI. It also exercises the
+   publishing path before a tool depends on it. garita trials it first, after its own Phase 0 work,
+   pinning that exact version, and reports what is wrong.
 4. `0.1.0` is published. Each tool then depends on it with a requirement on the `0.1` series, so a
    breaking change is a new minor. A tool's release that needs a kit version waits until that
    version is on crates.io.
