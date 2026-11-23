@@ -255,7 +255,7 @@ The schemas' `v1.0.0` tag does not depend on any step here.
 
 ## Open questions
 
-- **Publishing, decided for now.** The maintainer declined on 2026-11-24: the org does not publish
+- **Publishing, decided for now.** The maintainer declined on 2026-11-23: the org does not publish
   Rust crates yet, and its tools ship as release binaries. The crate is not published, not as a
   pre-release either, and the name is not reserved. §4 and §8 describe a path that is closed until
   that changes (see Revisions).
@@ -282,7 +282,7 @@ The schemas' `v1.0.0` tag does not depend on any step here.
 
 | Date | Change |
 |---|---|
-| 2026-11-24 | Publishing to crates.io declined for now by the maintainer. A published crate was the only form urzua and garita could depend on, since both deny git and path dependencies, so the crate has no consumer today. It is deferred, and no crate code is written, until the org decides to publish crates or to allow a pinned dependency on its own repositories. This record stays Draft. The schemas at `v1.0.0` remain the contract. |
+| 2026-11-23 | Publishing to crates.io declined for now by the maintainer. A published crate was the only form urzua and garita could depend on, since both deny git and path dependencies, so the crate has no consumer today. It is deferred, and no crate code is written, until the org decides to publish crates or to allow a pinned dependency on its own repositories. This record stays Draft. The schemas at `v1.0.0` remain the contract. |
 
 ## References
 
