@@ -48,10 +48,11 @@ pinned by the tool's lockfile, works offline, and needs no drift check.
   `next_action`, `next_action_reason` and `next_action_inputs`, byte for byte what urzua prints
   today: two nulls and an empty array when there is no action. The crate flattens nothing itself.
   A tool may serialize `NextActionKeys` as it is, or copy its three values into fields of its own,
-  as urzua's one wrapper does under its ADR-46 amendment
+  as urzua's one wrapper does under its ADR-46 amendment. The conversion runs both ways, and it is
+  the only way to build the keys, so a reason without an action cannot be printed
 - `Severity`: `error`, `warning`, `info`, ordered so that `error` is greater than `warning` and
   `warning` greater than `info`
-- `Examined`: a map from a unit name to a count
+- `Examined`: a map from a unit name to a count, ordered by key so that output is stable
 - `CheckKind`: `lint`, `format`, `types`, `test`, `build`, `records`, `other`
 - `Profile`: `base`, `gate`, `exempt`
 - `System`: 0, 1 or 2, as `describe` prints it
@@ -59,9 +60,23 @@ pinned by the tool's lockfile, works offline, and needs no drift check.
 - `ObjectId`: a git object hash, 40 or 64 lowercase hex characters, checked when built and
   serialized as a plain string
 - `ExitCode`: `Ok` is 0, `Blocking` is 1, `NotRun` is 2, and `exit_code(not_run, blocking)`, the one
-  place the mapping is written
+  place the mapping is written. It looks at `not_run` first, so a report that could not run never
+  exits 1
 - `NOT_RUN`, the reserved status word, and `CONTRACT_VERSION`, the string a tool prints in
   `describe`
+
+A tool's report that copies the values into its own fields:
+
+```rust
+let keys = NextActionKeys::from(next_action); // Option<NextAction>
+let report = MyReport {
+    status,
+    next_action: keys.next_action,
+    next_action_reason: keys.next_action_reason,
+    next_action_inputs: keys.next_action_inputs,
+    // the tool's own fields
+};
+```
 
 **The `not-run` report.** `NotRunReport { error, next_action }` is the one whole report the crate
 owns, because its shape is the same in every tool: `status` is `not-run`, and it exits 2.
@@ -80,6 +95,8 @@ will.
 `ResultWord`. The receipt schema is a draft, and the feature name says the types can change in any
 release until it is not. `Receipt` is generic over the report it embeds, a check's `status` is a
 string and its `scope` is a JSON object with a `kind`, so that no tool's own types enter the crate.
+`tree`, `worktree` and `commit` are `ObjectId`s. `output_tail(text)` cuts a check's output to the
+schema's 4,000 characters on a character boundary, so that no writer derives the limit again.
 
 **The schemas as text.** The crate embeds the five schema files and exposes each as a `&'static str`
 constant, with the version they came from. This needs no dependency. A tool's lockfile then pins the
@@ -87,15 +104,16 @@ schemas, and a tool's test can write them to a directory for a validator outside
 
 **Two test helpers.**
 
-- `assert_contract(profile, &value, exit_code)` checks the contract's own rules on a serialized
-  report, with no validator. For either profile: `status` and the three next-action keys are
-  present; `next_action_reason` is null exactly when `next_action` is; `error` appears only on a
-  `not-run` report; the exit code is 2 exactly when `status` is `not-run`. For the gate profile it
-  adds: `blocking`, `findings` and `examined` are present unless the report is `not-run`; `blocking`
-  is true exactly when the exit code is 1; a `not-run` report is not blocking. The rules that tie a
-  report to its exit code are ones no schema can express. Each rule comes from RFC-1 §1 or §2. One
-  is read from two sentences there: a `not-run` report exits 2, and exit code 2 means the command
-  could not run.
+- `contract_violations(profile, &value, exit_code)` returns every rule of the contract that a
+  serialized report breaks, and `assert_contract` fails a test with that list. They need no
+  validator and are in the default features. For either profile: `status` and the three next-action
+  keys are present; `next_action_reason` is null exactly when `next_action` is; `error` appears only
+  on a `not-run` report; the exit code is 2 exactly when `status` is `not-run`. For the gate profile
+  it adds: `blocking`, `findings` and `examined` are present unless the report is `not-run`;
+  `blocking` is true exactly when the exit code is 1; a `not-run` report is not blocking. The rules
+  that tie a report to its exit code are ones no schema can express. Each rule comes from RFC-1 §1
+  or §2. One is read from two sentences there: a `not-run` report exits 2, and exit code 2 means the
+  command could not run.
 - `assert_conforms(Schema::GateReport, &value)`, behind a feature named `validate`, validates a
   value against the embedded schemas with a JSON Schema 2020-12 validator and prints its errors. The
   feature is off by default, and a tool turns it on only as a dev-dependency. It is not in the first
@@ -166,6 +184,9 @@ The crate has its own version and its own tags, `crate-v<version>`. Schema relea
   publication.
 - A crate release may only embed schema files that are identical to a tagged schema release or
   release candidate. CI checks this against `schemas/SHA256SUMS` at that tag.
+- A change to a type behind `unstable-receipt` is not a breaking change for the crate's version. A
+  tool that uses the feature pins an exact crate version. A tool that does not use receipts is never
+  made to take a new minor or major because the receipt changed.
 
 ### 6. How it stays in step with the schemas
 
@@ -216,8 +237,10 @@ copy to the embedded schemas once a release carries them.
 
 1. This RFC is accepted.
 2. The crate lands in this repository at `0.1.0`, unpublished, with the tests of §6.
-3. garita and urzua each try it from a local path on a branch and report what is wrong. Neither can
-   merge that branch, because both deny any source but crates.io.
+3. A pre-release, `0.1.0-alpha.1`, is published to crates.io. Neither tool can merge a dependency
+   from any other source, so a pre-release is the only trial that runs in a tool's CI. It also
+   exercises the publishing path before a tool depends on it. garita trials it first, after its
+   own Phase 0 work, and reports what is wrong.
 4. `0.1.0` is published. Each tool then depends on it with a requirement on the `0.1` series, so a
    breaking change is a new minor. A tool's release that needs a kit version waits until that
    version is on crates.io.
