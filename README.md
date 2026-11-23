@@ -23,11 +23,12 @@ for a base report, `gate-report.schema.json` for a gate report, `describe.schema
 `describe`. [`examples/`](examples) shows what passes and what does not.
 
 Vendor the schemas from a release tag. Tests then run against the local copy and need no network.
+The latest tag is `v1.0.0-rc.1`, a release candidate; `v1.0.0` is not tagged yet.
 
 ```sh
 (
   set -eu
-  tag=v1.0.0
+  tag=v1.0.0-rc.1
   dest=tests/contract
   tmp="$(mktemp -d)"
   git clone --quiet --depth 1 --branch "$tag" https://github.com/urzuahq/agent-cli-kit "$tmp"
