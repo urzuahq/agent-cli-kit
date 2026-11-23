@@ -74,11 +74,10 @@ tool-defined for the base and gate profiles, and that does not change. The run p
 words because a reader of a runner compares one check with another and one runner with another,
 and cannot do that with words it has to learn per tool.
 
-**The paragraph above and the `status` row of the table are not yet decided.** The maintainer
-accepted this RFC with the question of fixed status words left open (see the first open question).
-Until they answer, the schema accepts any non-empty string for both, as the gate profile does, and
-garita's words are what garita prints. `v1.1.0` is not tagged before the answer: closing a list
-after a release would be a breaking change.
+The maintainer decided this on 2026-11-23: the words are fixed (see Revisions). `skipped` is a
+check's word only; a report is never `skipped`. This narrows RFC-1's tool-defined `status` for the
+run profile alone. A command in the base or the gate profile still chooses its own words, so
+urzua's reports are unaffected.
 
 ### 2. Scope
 
@@ -184,9 +183,8 @@ This is contract version 1.1: a new profile value, a new schema, and one optiona
 finding. No output that conformed to 1.0 stops conforming. Every JSON Schema keyword the new schema
 uses is already in the list of `scripts/check_keywords.py`.
 
-It ships as `v1.1.0-rc.1` first. garita validates its report against the run schema, and `v1.1.0`
-is tagged when that passes and the open question on status words is answered, as `v1.0.0` waited
-for urzua.
+It ships as a release candidate first. garita validates its report against the run schema, and
+`v1.1.0` is tagged when that passes, as `v1.0.0` waited for urzua.
 
 ### 11. What each tool changes
 
@@ -200,10 +198,8 @@ output keeps every other key it prints today.
 
 ## Open questions
 
-- **Fixing the status words of a profile.** RFC-1 made `status` tool-defined and reserved only
-  `not-run`, and a shared status vocabulary is a non-goal there. This RFC fixes the words for the
-  run profile alone. That is a narrowing of an earlier decision of the maintainer's, and theirs to
-  confirm.
+- **Fixing the status words of a profile. Answered.** They are fixed for the run profile, as §1
+  says (see Revisions).
 - **Whether a tool's own flags and configuration are outside the contract. Answered.** They are
   the tool's interface, as §7 says (see Revisions).
 - **`trigger` and `scope.kind` as closed lists.** They are garita's words today, and garita has
@@ -222,6 +218,7 @@ output keeps every other key it prints today.
 |---|---|
 | 2026-11-23 | Accepted by the maintainer. Their words, in answer to a numbered list whose first item was "Accept RFC-3": "I accept 1". Three points stay open and are theirs: whether the run profile fixes its status words (§1), whether a runner's own configuration and flags are outside the contract (§7), and whether the ruling that a tool defines no contract covers tools other than garita. The dates of the ruling and of this record were first written as 2026-11-24 in error and are corrected here. |
 | 2026-11-23 | The maintainer refined the ruling behind this RFC. Their words: "each tool can have extra keys I guess, and that's that tool's specific extended contract", and "the CLI kit is for contract but yeah we would customise it per the one". The layers that answer was given against: the base contract is what every tool prints, and is this repository's; a profile is the base customised for one kind of command, also this repository's, written with the tool; a tool's extra keys are allowed and are that tool's own extended contract, which must not contradict the base or its profile; a tool's flags and configuration file are its interface. This applies to every tool, not to garita alone. §7 now says that an item not taken may stay in garita as garita's own. What this RFC took stays taken. Whether the run profile fixes its status words is still open. |
+| 2026-11-23 | The maintainer decided the status words. Offered fixed words, free text as before, or a list that accepts other words, they chose fixed. Their words, dictated and transcribed, with the bracketed words supplied by the relay: "Maybe we don't do open strings and do [it properly] now. Just do fixed schema [for] now yeah". The run report's `status` is `pass`, `warn`, `fail` or `not-run`, and a check's adds `skipped`. `v1.1.0-rc.1` accepted any string; the lists are closed from `v1.1.0-rc.2`. |
 
 ## References
 
