@@ -43,14 +43,10 @@ if ! (cd schemas && sha256sum -- *.schema.json | diff - SHA256SUMS >&2); then
   failed=1
 fi
 
-# An example only exercises the $refs it reaches, so check every target exists.
-while IFS=: read -r file ref; do
-  target="${ref%%#*}"
-  if [ -n "$target" ] && [ ! -f "schemas/$target" ]; then
-    echo "FAIL  $file refers to $target, which is not in schemas/" >&2
-    failed=1
-  fi
-done < <(grep -o '"\$ref": *"[^"]*"' schemas/*.schema.json | sed -E 's/"\$ref": *"([^"]*)"$/\1/')
+# An example only exercises the $refs it reaches, so resolve every one.
+if ! python3 scripts/check_refs.py schemas; then
+  failed=1
+fi
 
 for s in schemas/*.schema.json; do
   if ! out="$("${run[@]}" --check-metaschema "$s" 2>&1)"; then

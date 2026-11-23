@@ -25,16 +25,21 @@ for a base report, `gate-report.schema.json` for a gate report, `describe.schema
 Vendor the schemas from a release tag. Tests then run against the local copy and need no network.
 
 ```sh
-tag=v1.0.0
-dest=tests/contract
-tmp="$(mktemp -d)"
-git clone --quiet --depth 1 --branch "$tag" https://github.com/urzuahq/agent-cli-kit "$tmp"
-mkdir -p "$dest"
-rm -f "${dest:?}"/*.schema.json
-cp "$tmp"/schemas/*.schema.json "$tmp"/schemas/SHA256SUMS "$dest"/
-printf '%s %s\n' "$tag" "$(git -C "$tmp" rev-parse HEAD)" > "$dest/VERSION"
-rm -rf "$tmp"
+(
+  set -eu
+  tag=v1.0.0
+  dest=tests/contract
+  tmp="$(mktemp -d)"
+  git clone --quiet --depth 1 --branch "$tag" https://github.com/urzuahq/agent-cli-kit "$tmp"
+  mkdir -p "$dest"
+  rm -f "${dest:?}"/*.schema.json
+  cp "$tmp"/schemas/*.schema.json "$tmp"/schemas/SHA256SUMS "$dest"/
+  printf '%s %s\n' "$tag" "$(git -C "$tmp" rev-parse HEAD)" > "$dest/VERSION"
+  rm -rf "$tmp"
+)
 ```
+
+The subshell stops at the first failure, so a tag that does not exist leaves the old copy in place.
 
 The schemas `$ref` each other by relative path, so point the validator's base URI at the vendored
 directory. Their `$id` is a name, not where a test should fetch from.

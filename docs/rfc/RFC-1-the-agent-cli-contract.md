@@ -119,8 +119,11 @@ that wants a key every reader can rely on proposes it here.
 ### 4. Versioning
 
 A reader compares the major of the tool's `contract_version` with its own. A different major means
-the reader reports the tool as `not-run` and does not guess. A minor release only adds optional
-keys, so a reader written for 1.0 reads 1.3 output unchanged.
+the reader reports the tool as `not-run` and does not guess. A minor release adds only optional
+keys and list values, so a reader written for 1.0 reads 1.3 output unchanged: it ignores a key it
+does not know and does not guess the meaning of a list value it does not know. A reader does not
+reject a tool's output for failing the reader's own, older copy of the schemas. Validation is the
+producing tool's test (§6).
 
 **Releases.** A release is a git tag `v<major>.<minor>.<patch>` on `main`. `<major>.<minor>` is the
 `contract_version` a tool prints. The three numbers move as follows.
@@ -128,11 +131,11 @@ keys, so a reader written for 1.0 reads 1.3 output unchanged.
 - **Patch**: nothing a schema accepts or rejects changes. A description, an example, the record's
   wording.
 - **Minor**: a new optional key, or a new value in one of the contract's lists (`kind`, `profile`,
-  `severity`). Output that conformed before, and used no key the contract had not yet defined,
-  still conforms. A reader meets a list value it does not know by treating the report as it would
-  an unknown key: it keeps going and does not guess a meaning.
-- **Major**: output that conformed, using only keys the contract defined, stops conforming. A key
-  is removed, renamed, made required or given a narrower type.
+  `severity`, `system`). Output that conformed before, and used no key the contract had not yet
+  defined, still conforms.
+- **Major**: output that conformed, using only keys the contract defined, stops conforming, or a
+  reader can no longer rely on a key it was promised. A key is renamed, made required or given a
+  narrower type, or a required key stops being required.
 
 Unknown keys are allowed, so one case sits between minor and major: a tool's own key whose name a
 later minor defines with a different shape. That tool's output stops conforming although the
