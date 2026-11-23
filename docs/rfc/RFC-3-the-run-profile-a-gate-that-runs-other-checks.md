@@ -74,7 +74,7 @@ tool-defined for the base and gate profiles, and that does not change. The run p
 words because a reader of a runner compares one check with another and one runner with another,
 and cannot do that with words it has to learn per tool.
 
-**This paragraph and the `status` row above are not yet decided.** The maintainer accepted this
+**The paragraph above and the `status` row of the table are not yet decided.** The maintainer accepted this
 RFC with the question of fixed status words left open (see the first open question). Until they
 answer, the schema accepts any non-empty string for both, as the gate profile does, and garita's
 words are what garita prints. `v1.1.0` is not tagged before the answer: closing a list after a
