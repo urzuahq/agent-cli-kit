@@ -1,7 +1,8 @@
 ---
 Stable-Id: 01M85BC4GP8W2DRH6E7SFN6BD2
-Status: Draft
-Date: 2026-11-24
+Status: Accepted
+Date: 2026-11-23
+Accepted-on: 2026-11-23
 Author: beauwilliams
 ---
 # 3 — The run profile: a gate that runs other checks
@@ -13,7 +14,7 @@ checks and returns one verdict. It is the gate profile plus a list of the checks
 facts that say what the run was of. It also adds one optional key to the finding, names how a
 wrapped tool's rule ids are written, and states how a command accepts the scopes it declares.
 
-The maintainer ruled on 2026-11-24 that garita defines no output or input contract: the contracts
+The maintainer ruled on 2026-11-23 that garita defines no output or input contract: the contracts
 are this repository's, and garita implements them. garita's report already prints every key this
 RFC defines. So the RFC takes what garita prints, decides it item by item, and gives it a schema.
 It ships as contract version 1.1.
@@ -72,6 +73,12 @@ A run report's own `status` is `pass`, `warn`, `fail` or `not-run`. RFC-1 keeps 
 tool-defined for the base and gate profiles, and that does not change. The run profile fixes the
 words because a reader of a runner compares one check with another and one runner with another,
 and cannot do that with words it has to learn per tool.
+
+**The paragraph above and the `status` row of the table are not yet decided.** The maintainer
+accepted this RFC with the question of fixed status words left open (see the first open question).
+Until they answer, the schema accepts any non-empty string for both, as the gate profile does, and
+garita's words are what garita prints. `v1.1.0` is not tagged before the answer: closing a list
+after a release would be a breaking change.
 
 ### 2. Scope
 
@@ -172,7 +179,8 @@ finding. No output that conformed to 1.0 stops conforming. Every JSON Schema key
 uses is already in the list of `scripts/check_keywords.py`.
 
 It ships as `v1.1.0-rc.1` first. garita validates its report against the run schema, and `v1.1.0`
-is tagged when that passes, as `v1.0.0` waited for urzua.
+is tagged when that passes and the open question on status words is answered, as `v1.0.0` waited
+for urzua.
 
 ### 11. What each tool changes
 
@@ -202,6 +210,12 @@ output keeps every other key it prints today.
 - Changing the base or gate profile, or anything a 1.0 report must contain.
 - Defining how a runner decides its verdict: which outcome wins, what blocks, what is demoted.
 - A list of rule ids, units or messages.
+
+## Revisions
+
+| Date | Change |
+|---|---|
+| 2026-11-23 | Accepted by the maintainer. Their words, in answer to a numbered list whose first item was "Accept RFC-3": "I accept 1". Three points stay open and are theirs: whether the run profile fixes its status words (§1), whether a runner's own configuration and flags are outside the contract (§7), and whether the ruling that a tool defines no contract covers tools other than garita. The dates of the ruling and of this record were first written as 2026-11-24 in error and are corrected here. |
 
 ## References
 
