@@ -36,31 +36,34 @@ arguments, so an agent learns them from `--help`, which is prose.
 schema defects were found only when a real tool was run against the schemas.
 
 **Nothing has shipped that this would break.** urzua 0.4.14 does not answer `describe` yet, and
-garita's is days old. Both tools were asked what each rule here costs, and their answers are in the
-sections below.
+garita's is on a branch. Both tools were asked what each rule here costs, and their answers are in
+the sections below.
 
 ## Proposal
 
 ### 1. The principle, and what it allows
 
-A tool has two readers: an agent, and the host that started it. Every channel is one of four
-things.
+A tool has two readers: an agent, and the host that started it. Every channel is one of these.
 
-- **The report.** One JSON object on stdout, as RFC-1 says.
+- **The report.** One JSON object on stdout, and the exit code that goes with it, as RFC-1 says.
+- **A file the report names.** A receipt, a check's full output, a log. The report gives its path.
 - **A declared input.** An argument, an environment variable, standard input or a configuration
   file that `describe` names (§6).
 - **A host's protocol.** A command that a host calls in the host's own format, declared as such
   (§5).
 - **Text for the reader, inside the report.** A `message`, a reason, an `error`. A reader shows it
   or passes it on and never parses it (§4).
+- **The version line.** `--version` prints one fixed line, for install scripts (§3).
 
 Anything else is outside the contract and a tool does not rely on it: stderr, `--help`, prompts,
 colour, and behaviour that depends on a terminal.
 
 ### 2. stderr
 
-A command writes nothing to stderr. That holds for a report that blocks, for a `not-run` report,
-and for `describe`.
+A command that prints a report writes nothing to stderr. That holds for a report that blocks, for
+a `not-run` report, and for `describe`. A command that speaks a host's protocol, and a hook script
+a tool installs, are the one case apart: their streams belong to the host, and §5 says what goes
+on them.
 
 - **A top-level handler.** A tool catches its own failures, an internal error or a panic included,
   and prints a `not-run` report with exit code 2. It also silences the message its runtime would
@@ -131,17 +134,22 @@ server. They cannot print the contract's report on stdout, because stdout belong
   or `file` for a command whose product is a file. A reader that does not know the word does not
   call the command.
 - **Inside the protocol,** where the host gives the tool free text to show, the tool puts its
-  report and nothing else. A git hook that blocks prints the tool's JSON report, with no banner
-  and no closing line.
+  report and nothing else, on whichever stream the host relays. A git hook that blocks prints the
+  tool's JSON report, with no banner and no closing line. git shows a hook's stdout and its stderr
+  alike, so either stream serves.
+- **The list of `protocol` words is open.** A tool that speaks another host's format names it with
+  a word of its own, and a reader that does not know the word does not call the command.
 - **A hook script a tool installs** is part of the tool. When the tool's binary is missing, the
   script prints a `not-run` report as a literal: `status` `not-run`, an `error`, `error_kind`
   `environment`, `next_action` and `next_action_reason` null, and an empty `next_action_inputs`.
   What the script exits with is the host's protocol and the tool's own policy, not this contract's.
 
 Cost: garita's hook already prints only the report when it blocks, and needs a new hook format for
-the missing-binary case, installed once per repository. urzua's hooks print a banner and a closing
-line that go. An install script is not a command of the tool and is outside the contract: it is a
-shell script a person or a CI job runs once to put the tool on a machine.
+the missing-binary case, installed once per repository. urzua's git hooks print a banner and a
+closing line that go, and the prose its harness hook prints when the binary is missing becomes the
+same `not-run` literal, in the form that host accepts. An install script is not a command of the
+tool and is outside the contract: it is a shell script a person or a CI job runs once to put the
+tool on a machine.
 
 ### 6. `describe` declares a tool's inputs
 
@@ -150,7 +158,8 @@ says how a tool declares them, so that an agent reads them as data.
 
 **Commands.** A command's `name` is its full path, words separated by one space, such as
 `migrate ids`. Each command carries `args`, an array, empty when it takes none. The tool carries a
-top-level `args` for options every command accepts.
+top-level `args` for options every command accepts. Those are accepted after the command's name; a
+tool may accept them before it as well. `--help` and `--version` are not listed.
 
 Each entry of `args`:
 
@@ -158,14 +167,14 @@ Each entry of `args`:
 |---|---|---|---|
 | `name` | string | yes | The option as typed, such as `--base`, or a positional argument's name. |
 | `kind` | string | yes | `flag` (a switch), `option` (takes a value) or `positional`. |
-| `type` | string | yes | `string`, `integer`, `boolean` or `path`. |
+| `type` | string | for an option or a positional | `string`, `integer` or `path`. A flag has no type. |
 | `required` | boolean | yes | Whether the command refuses to run without it. |
 | `repeatable` | boolean | yes | Whether it may be given more than once. |
 | `means` | string | yes | What to put there, in a sentence. |
 | `values` | array of strings | no | The closed list of values it accepts. |
 | `format` | string | no | A narrower form of a string, such as `date` for `YYYY-MM-DD`. |
-| `conflicts_with` | array of strings | no | Names of arguments it cannot be given with. |
-| `requires` | array of strings | no | Names of arguments that must be given with it. |
+| `conflicts_with` | array of strings | no | The `name` of each argument it cannot be given with. |
+| `requires` | array of strings | no | The `name` of each argument that must be given with it. |
 | `after_separator` | boolean | no | True for positional arguments that are given after `--`. |
 
 **Environment.** The tool carries `env`, an array of `{name, means}`, one entry per environment
@@ -182,6 +191,10 @@ rules a schema cannot carry, and deriving one is days of work for each.
 
 **An example.** A command may carry `example`, an array of the arguments of one invocation that is
 expected to run. The runner uses it (§8).
+
+Names are unique within a command together with the tool's top-level `args`, and a name in
+`conflicts_with` or `requires` is one of them. A schema cannot state either rule, so the runner
+checks both (§8).
 
 Both tools said they can generate `args` from their argument definitions. What their command lines
 have that the first shape lacked is in the table above: nested commands, global options, exclusion
@@ -203,15 +216,24 @@ terminal, and the path without it already exists.
 ### 8. A conformance runner
 
 The kit ships a script, `scripts/conform.py`, that a tool runs in its own CI against its own
-binary. It does what an agent would do first, and checks the answers.
+binary. It is given the path of the binary and runs every command in the directory it was started
+in. It does what an agent would do first, and checks the answers.
 
-1. It runs `<tool> describe` and validates the result against `describe.schema.json`.
+1. It runs `<tool> describe` and validates the result against `describe.schema.json`. It then
+   checks what the schema cannot: that argument names are unique and that every name in
+   `conflicts_with` and `requires` exists.
 2. For every command that `describe` marks `safe` and that is not `exempt`, it runs the command
-   with the arguments in `example`, or with none.
+   with the arguments in `example`, or with none. A command that needs an argument and has no
+   `example` answers with a `not-run` report whose `error_kind` is `usage`, and that is a pass.
 3. For each run it checks: stdout is one JSON object and validates against the schema of the
-   command's profile; stderr is empty; the exit code is 2 exactly when `status` is `not-run`, and
-   otherwise 1 exactly when `blocking` is true.
+   command's profile; stderr is empty; and the exit code is 2 exactly when `status` is `not-run`.
+   For the gate and run profiles, whose reports carry `blocking`, the exit code is otherwise 1
+   exactly when `blocking` is true. For the base profile it is otherwise 0 or 1.
 4. It runs `<tool> --version` and checks the one line of §3.
+
+Each run has a time limit, 60 seconds unless the caller sets another, and a run that exceeds it
+fails. `safe` says a command writes nothing. A tool whose safe command is slow, or needs a network,
+gives it an `example` that is neither.
 
 Any result that agrees with itself passes, a `not-run` included, so a tool needs no fixture to run
 it. A tool that wants a stronger test runs it in a directory where its commands have something to
@@ -235,6 +257,10 @@ A tool that prints `contract_version` `"1.1"`:
 
 A tool that prints `"1.0"` is held to RFC-1 as it stood at `v1.0.0`. Nothing that conformed to 1.0
 stops conforming.
+
+Version 1.1 is taken whole. A tool that uses the run profile prints `"1.1"`, and so takes on
+everything in this list. No tool has released against 1.1 yet, which is why this can still be
+settled as one version.
 
 ### 10. What rides with 1.1 and what waits
 
@@ -268,6 +294,9 @@ contract that stays put, and one settled 1.1 serves that better than a 1.1 follo
 - `run-report.schema.json`: optional `output_tail` and `output` on a check entry.
 - `scripts/conform.py`, and `make check` runs it against a small fixture tool so that the runner
   itself is tested.
+- The examples follow. `examples/valid/describe.run-profile.json` prints `"1.1"` and gains its
+  inputs, and each new rule gets a valid and an invalid example. The `"1.0"` examples are
+  unchanged and stay valid.
 - RFC-1 §1, §3 and §6 are brought into line, with a revision row pointing here. The draft
   amendment on stderr is replaced by §2 above. RFC-1 §4's rule on new JSON Schema keywords is a
   separate amendment and is unaffected.
@@ -278,7 +307,8 @@ No JSON Schema keyword outside the checked list is needed.
 
 **urzua**: ships `describe` with its inputs; moves a panic's text to `error` and sets `error_kind`;
 builds a usage error's message without the parser's usage block; removes the menu in `init`; drops
-the banner and closing line from its git hooks; runs the runner in CI.
+the banner and closing line from its git hooks and the prose from its harness hook's missing-binary
+case; runs the runner in CI.
 
 **garita**: extends its panic handler to every command; sets `error_kind`; moves captured output
 from `message` to `output_tail` and `output` on the check; adds `args`, `env`, `stdin` and `config`
