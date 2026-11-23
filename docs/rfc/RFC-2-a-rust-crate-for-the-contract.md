@@ -10,8 +10,8 @@ Author: beauwilliams
 
 This RFC adds a Rust crate, `agent-cli-kit`, to this repository. The crate holds the parts of the
 contract that are the same in every Rust tool: the small types, the exit codes, the `describe`
-output, the receipt, and a helper that checks a tool's output against the schemas. It does not hold
-a report type. Each tool keeps its own report struct and implements a trait.
+output, the finding, the receipt, and helpers that check a tool's output against the contract. It
+does not hold a report type. Each tool keeps its own report struct.
 
 The schemas stay the source of truth. The crate embeds them, is tested against them, and is
 versioned on its own so that it can follow a schema release and never has to hold one up.
@@ -48,7 +48,10 @@ pinned by the tool's lockfile, works offline, and needs no drift check.
 - `CheckKind`: `lint`, `format`, `types`, `test`, `build`, `records`, `other`
 - `Profile`: `base`, `gate`, `exempt`
 - `ToolInfo { name, version }`
-- `ExitCode`: `Ok` is 0, `Blocking` is 1, `NotRun` is 2
+- `ObjectId`: a git object hash, 40 or 64 lowercase hex characters, checked when built and
+  serialized as a plain string
+- `ExitCode`: `Ok` is 0, `Blocking` is 1, `NotRun` is 2, and `exit_code(not_run, blocking)`, the one
+  place the mapping is written
 - `NOT_RUN`, the reserved status word, and `CONTRACT_VERSION`, the string a tool prints in
   `describe`
 
@@ -58,43 +61,67 @@ owns, because its shape is the same in every tool: `status` is `not-run`, and it
 **`describe`.** `Describe` and `Command`, complete. RFC-1 says this repository owns the `describe`
 field list, so these types are that list in Rust.
 
-**The receipt**, behind a feature named `unstable-receipt`: `Receipt`, `ReceiptCheck`, `ResultWord`
-and the check's scope. The receipt schema is a draft, and the feature name says the types can change
-in any release until it is not.
+**The finding.** `Finding` has exactly the contract's keys: `rule`, `severity`, `message`, `file`,
+`line`, `column`, `fix` and `fingerprint`. `line` and `column` are non-zero integers, so a zero
+cannot be built. A tool that prints more keys puts `Finding` inside its own struct, beside its own
+fields. The crate has no generic `Finding<X>`. It also offers `fingerprint(rule, file, message)`, so
+that two tools can produce the same fingerprint for the same finding. Using it is a tool's choice;
+the contract only asks that a fingerprint be stable across runs.
 
-**Traits, not an envelope.** A tool's report stays its own struct. The crate gives two traits.
-`BaseReport` has `status()` and `next_action()`. `GateReport` adds `blocking()`. The function
-`exit_code(&report)` is written once, on those traits. The crate has no generic report or envelope
-type, and nothing composed with `serde(flatten)`.
+**The receipt**, behind a feature named `unstable-receipt`: `Receipt<R>`, `ReceiptCheck` and
+`ResultWord`. The receipt schema is a draft, and the feature name says the types can change in any
+release until it is not. `Receipt` is generic over the report it embeds, a check's `status` is a
+string and its `scope` is a JSON value, so that no tool's own types enter the crate.
 
-**A conformance helper**, behind a feature named `conformance`. The crate embeds the five schema
-files. `assert_conforms(Schema::GateReport, &value)` validates a `serde_json::Value` against them
-and prints the validator's errors on failure. The feature pulls in a JSON Schema 2020-12 validator.
-A tool turns it on only as a dev-dependency, so nothing is added to the tool's own build.
+**The schemas as text.** The crate embeds the five schema files and exposes each as a `&'static str`
+constant, with the version they came from. This needs no dependency. A tool's lockfile then pins the
+schemas, and a script can still be pointed at them.
+
+**Two test helpers.**
+
+- `assert_contract(&value, exit_code)` checks the contract's own rules on a serialized report, with
+  no validator: `blocking` is true exactly when the exit code is 1; `next_action_reason` is null
+  exactly when `next_action` is; a `not-run` report has exit code 2 and is not blocking; `findings`
+  and `examined` are present unless the report is `not-run`. Several of these tie the report to the
+  exit code, which no schema can express.
+- `assert_conforms(Schema::GateReport, &value)`, behind a feature named `conformance`, validates a
+  value against the embedded schemas with a JSON Schema 2020-12 validator and prints its errors. The
+  feature is off by default, and a tool turns it on only as a dev-dependency.
+
+**No report type and no report trait.** A tool's report stays its own struct. garita was asked and
+said a trait saves less code than it costs; what saves work is the two helpers above. The crate has
+no generic report or envelope type, and nothing composed with `serde(flatten)`.
 
 ### 2. What it does not hold
 
 - **A report struct or a generic envelope.** urzua tried one and rejected it in its ADR-46: a
   shared struct flattened into a report that already owns a `status` field printed the key twice.
 - **A `status` enum.** Status is tool-defined in RFC-1, apart from `not-run`.
-- **A finding struct, for now.** urzua's finding carries `suggested_action` and garita's carries
-  `check`. Whether the crate offers a trait, a struct with a typed extension, or nothing is an open
-  question below, to be answered by the two tools.
+- **A tool's extra finding keys.** urzua's finding carries `suggested_action` and garita's carries
+  `check`. Those stay in each tool. If a tool flattens `Finding` into its own struct, keeping its
+  field names clear of the contract's is that tool's job, and a test in the tool pins it.
+- **A tool's verdict.** Which outcome wins, what blocks, and how a re-run command is built are each
+  tool's behaviour, not the contract's.
 - **Printing or process exit.** The crate returns an `ExitCode`. Writing stdout and exiting is the
   tool's.
 - **A runner.** RFC-1's rule stands: the kit does not execute other people's commands.
 
 ### 3. Dependencies and Rust version
 
-Default features depend on `serde` and `serde_json` and nothing else. The crate has no `unsafe`
-code. Its minimum Rust version is 1.87 and its edition is 2021, which both tools can build. Its
-licence is MIT, the repository's.
+Default features depend on `serde` and `serde_json` and nothing else: no build script and no C
+dependency. The crate has no `unsafe` code. Its minimum Rust version is 1.87 and its edition is
+2021, which both tools can build. Its licence is MIT, the repository's.
+
+The `conformance` feature may add a validator only if every crate it pulls in is under MIT,
+Apache-2.0, Apache-2.0 WITH LLVM-exception or Unicode-3.0, and builds on Rust 1.87. Both tools check
+licences and sources for dev-dependencies too. If no validator meets that, the feature is dropped
+and `assert_contract` and the schema text are what the crate offers.
 
 ### 4. How it is published
 
 On crates.io, as `agent-cli-kit`. The name is free there today. A registry release is the only form
-urzua can depend on: its dependency policy denies git sources and allows only crates.io. A release
-is published from CI on a tag, never from a developer's machine.
+urzua or garita can depend on: both deny git sources and allow only crates.io. A release is
+published from CI on a tag, never from a developer's machine.
 
 The crate's manifest sits at the repository root, so that the package can include `schemas/` as it
 is and the embedded files are the checked ones, not a copy.
@@ -119,10 +146,12 @@ The crate has its own version and its own tags, `crate-v<version>`. Schema relea
 The crate is tested against the schemas. It is not generated from them.
 
 - Every value the crate's own types can serialize is validated against the embedded schema: the
-  `not-run` report, `describe`, the receipt, and each leaf type inside a minimal report.
-- Every file in `examples/valid/` for a schema whose type the crate owns (`describe`, `receipt`)
-  must deserialize into that type and serialize back to the same JSON.
+  `not-run` report, `describe`, the finding, the receipt, and each leaf type inside a minimal report.
+- Every file in `examples/valid/` for a schema whose type the crate owns (`describe`, `finding`,
+  `receipt`) must deserialize into that type and serialize back to the same JSON.
 - Every file in `examples/invalid/` must be rejected by `assert_conforms`.
+- `assert_contract` must pass on every valid report example and fail on a report built to break
+  each of its rules.
 - `make check` runs these with the schema checks, so a pull request that changes a schema and not
   the crate fails.
 
@@ -134,8 +163,14 @@ a build-time dependency of every tool.
 
 Nothing, until it chooses to. The schemas and the vendored copy from RFC-1 §6 keep working, and a
 tool in another language uses only those. A Rust tool that adopts the crate replaces its own leaf
-types with the crate's, implements the two traits on its report, and may replace its vendored
-schema directory with the `conformance` feature.
+types with the crate's, calls the helpers from its tests, and may replace its vendored schema
+directory with the embedded schemas.
+
+garita has said what it would take: the next-action input, `Severity`, `Examined`, `CheckKind`, the
+exit-code mapping, `ObjectId`, the finding, every `describe` type, and the receipt types once they
+are stable. Its report, its check entries, its status words, its trigger and scope and its verdict
+logic stay its own. It keeps its committed example reports, which prove that its real types
+serialize to the contract. urzua's answer is pending.
 
 ### 8. Order of work
 
@@ -149,14 +184,15 @@ The schemas' `v1.0.0` tag does not depend on any step here.
 
 ## Open questions
 
-- **Finding.** A trait with `rule()`, `severity()` and `message()`; a shared `Finding<X>` with a
-  typed extension; or no shared finding. Asked of urzua and garita.
-- **The report trait and urzua's own.** urzua has a `Report` trait with `notices()` and
-  `exit_code()`. Should the kit's trait replace it, sit beside it, or be left out?
-- **The validator.** Which JSON Schema validator the `conformance` feature uses, and whether each
-  tool's dependency policy accepts it as a dev-dependency. If neither does, the helper ships the
-  schema text only and each tool keeps validating its own way.
-- **Which types each tool will actually replace.** A type neither tool takes is left out.
+- **urzua's answers.** garita has answered (§7). urzua has been asked the same questions: which
+  types it would replace, whether the plain `Finding` suits a finding that carries
+  `suggested_action`, and whether it wants anything beside its own `Report` trait. A type neither
+  tool takes is left out.
+- **The validator.** Which JSON Schema validator the `conformance` feature uses, if any meets the
+  conditions in §3.
+- **The fingerprint function.** garita hashes the rule, the file and the message, never the line or
+  the column. Whether urzua can adopt the same function, or whether the crate should offer none,
+  depends on what urzua's fingerprints must stay stable against.
 - **Who publishes.** Publishing to crates.io claims a public name and cannot be undone. The
   maintainer decides whether to publish, under which account, and how CI is trusted to do it.
 - **RFC-1's text.** RFC-1 lists a shared library as a non-goal of version 1 and names a trigger for
