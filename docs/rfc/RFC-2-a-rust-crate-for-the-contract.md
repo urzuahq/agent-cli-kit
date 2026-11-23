@@ -164,6 +164,8 @@ The feature is added when a validator's tree passes both tools' checks unchanged
 
 ### 4. How it is published
 
+Publishing is declined for now, so this section describes a path that is closed (see Revisions).
+
 On crates.io, as `agent-cli-kit`. The name is free there today. A registry release is the only form
 urzua or garita can depend on: both deny git sources and allow only crates.io. A release is
 published from CI on a tag, never from a developer's machine.
@@ -253,8 +255,10 @@ The schemas' `v1.0.0` tag does not depend on any step here.
 
 ## Open questions
 
-- **Who publishes.** Publishing to crates.io claims a public name and cannot be undone. The
-  maintainer decides whether to publish, under which account, and how CI is trusted to do it.
+- **Publishing, decided for now.** The maintainer declined on 2026-11-24: the org does not publish
+  Rust crates yet, and its tools ship as release binaries. The crate is not published, not as a
+  pre-release either, and the name is not reserved. §4 and §8 describe a path that is closed until
+  that changes (see Revisions).
 - **A shared fingerprint function.** garita hashes the rule, the file and the message, never the
   line or the column, and offered the function. urzua keeps its own finding, so one tool would use
   it. It is left out until a second tool wants the same fingerprints.
@@ -273,6 +277,12 @@ The schemas' `v1.0.0` tag does not depend on any step here.
 - Code in any language other than Rust. A tool in another language uses the schemas.
 - Replacing the schemas as the contract. If the crate and a schema disagree, the crate is wrong.
 - A shared `status` vocabulary, a generic report type, or a command runner.
+
+## Revisions
+
+| Date | Change |
+|---|---|
+| 2026-11-24 | Publishing to crates.io declined for now by the maintainer. A published crate was the only form urzua and garita could depend on, since both deny git and path dependencies, so the crate has no consumer today. It is deferred, and no crate code is written, until the org decides to publish crates or to allow a pinned dependency on its own repositories. This record stays Draft. The schemas at `v1.0.0` remain the contract. |
 
 ## References
 
