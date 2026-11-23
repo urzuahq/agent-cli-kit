@@ -126,10 +126,13 @@ tree hash), `worktree` (a tree hash computed from the working files, which is wh
 files still hash to the receipt's `worktree`. That answer needs no comparison of clocks.
 
 `result` is `PASSED`, `WARNED` or `FAILED`, the vocabulary of the in-toto test-result predicate, so
-a receipt can later be wrapped in a signed statement. Each entry of `checks` has `name`, `command`,
-`scope` (an object with a `kind`, such as `{"kind": "affected", "packages": [...]}`), `tool_version`
-(string or null), `started_at`, `finished_at`, `duration_ms`, `exit_code` (the check's own exit
-code, or null when it was killed or never started), `status` and `examined`. `report` is the
+a receipt can later be wrapped in a signed statement. Each entry of `checks` has `name`, `kind`
+(`lint`, `format`, `types`, `test`, `build`, `records` or `other`, so a reader knows what a pass
+proves), `command`, `scope` (an object with a `kind`, such as
+`{"kind": "affected", "packages": [...]}`), `tool_version` (string or null), `started_at`,
+`finished_at`, `duration_ms`, `exit_code` (the check's own exit code, or null when it was killed or
+never started), `status`, `examined`, `output_tail` (the last 4,000 characters of the check's
+output) and `output` (the path of the full output, kept beside the receipt). `report` is the
 gate-profile report the run printed.
 
 A run that could not run still writes a receipt. Its `report` has `status` `not-run` and its

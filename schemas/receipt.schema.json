@@ -26,11 +26,12 @@
       "items": {
         "type": "object",
         "required": [
-          "name", "command", "scope", "tool_version", "started_at", "finished_at", "duration_ms",
-          "exit_code", "status", "examined"
+          "name", "kind", "command", "scope", "tool_version", "started_at", "finished_at",
+          "duration_ms", "exit_code", "status", "examined", "output_tail", "output"
         ],
         "properties": {
           "name": {"type": "string"},
+          "kind": {"enum": ["lint", "format", "types", "test", "build", "records", "other"]},
           "command": {"type": "string"},
           "scope": {
             "type": "object",
@@ -46,7 +47,9 @@
           "examined": {
             "type": "object",
             "additionalProperties": {"type": "integer", "minimum": 0}
-          }
+          },
+          "output_tail": {"type": "string", "maxLength": 4000},
+          "output": {"type": "string", "minLength": 1}
         }
       }
     },

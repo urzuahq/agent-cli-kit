@@ -1,0 +1,53 @@
+{
+  "receipt_version": 1,
+  "run_id": "01M8400000000000000000000A",
+  "started_at": "2026-11-23T09:30:00Z",
+  "finished_at": "2026-11-23T09:30:04Z",
+  "trigger": "push",
+  "commit": "9c1e0f5b7a3d4e6f8091a2b3c4d5e6f708192a3b",
+  "tree": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+  "worktree": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+  "dirty": false,
+  "config_hash": "sha256:9f2c1d0e7a6b",
+  "machine": "devbox",
+  "tool": {
+    "name": "garita",
+    "version": "0.1.0"
+  },
+  "result": "PASSED",
+  "checks": [
+    {
+      "name": "tests",
+      "kind": "tests",
+      "command": "cargo test --locked -p garita-core",
+      "scope": {
+        "kind": "affected",
+        "packages": [
+          "garita-core"
+        ]
+      },
+      "tool_version": "1.91.0",
+      "started_at": "2026-11-23T09:30:00Z",
+      "finished_at": "2026-11-23T09:30:04Z",
+      "duration_ms": 4212,
+      "exit_code": 0,
+      "status": "pass",
+      "examined": {
+        "tests": 37
+      },
+      "output_tail": "test result: ok. 37 passed; 0 failed; 0 ignored\n",
+      "output": ".garita/receipts/20261123T093000Z-push-01M8400000000000000000000A.tests.log"
+    }
+  ],
+  "report": {
+    "status": "pass",
+    "next_action": null,
+    "next_action_reason": null,
+    "next_action_inputs": [],
+    "blocking": false,
+    "findings": [],
+    "examined": {
+      "checks": 1
+    }
+  }
+}
