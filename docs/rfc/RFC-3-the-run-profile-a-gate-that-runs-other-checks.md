@@ -44,16 +44,18 @@ tool needs that written once.
 
 A command whose `describe` profile is `run` prints a gate report with these keys added.
 `schemas/run-report.schema.json` is the gate schema plus them. As in the gate profile, the keys
-marked required are required unless `status` is `not-run`.
+marked required are required unless `status` is `not-run`. The profile names the report a command
+prints, not what the command does: a command that selects no checks of its own, such as one that
+inspects the runner's setup, may print a run report whose `checks` is empty.
 
 | Key | Type | Required | Meaning |
 |---|---|---|---|
-| `checks` | array | yes | One entry per check the run selected, in the order they were declared. |
-| `trigger` | string or null | no | What started the run: `commit`, `push`, `ci` or `merge`. |
+| `checks` | array | yes | One entry per check the run selected, skipped ones included, in the order the run took them. Empty when nothing was selected. |
+| `trigger` | string or null | no | What started the run: `commit`, `push`, `ci` or `merge`. Null when the run could not start or the command has no trigger. |
 | `commit` | string or null | no | The commit the run was of, a full hash, or null when there is none yet. |
-| `tree` | string or null | no | The git tree the run was of, a full hash. |
-| `scope` | object or null | no | What the run was limited to (§2). |
-| `receipt` | string or null | no | The repository-relative path of the receipt this run wrote. |
+| `tree` | string or null | no | The git tree the run was of, a full hash. Null when the run could not start. |
+| `scope` | object or null | no | What the run was limited to (§2). Null when the run could not start. |
+| `receipt` | string or null | no | The repository-relative path of the receipt this run wrote. Null when none was written. |
 
 Each entry of `checks`:
 
@@ -93,17 +95,24 @@ of zero must not be read as a pass. How a runner is configured to suppress is it
 
 `finding.schema.json` gains one optional key, `check`: the `name` of the entry in `checks` that
 produced the finding. Any profile may use it. In the run profile, a `check` names an entry that
-exists in the same report.
+exists in the same report, and a finding about the run itself, which no check produced, has no
+`check`. A schema cannot state the first rule, so it is one a tool's own tests check.
+
+garita 0.1 prints `check: "garita"` on findings about the run itself. It stops doing so in the
+release that adopts this profile. This is the one key the profile takes away from what garita
+prints today.
 
 ### 5. Rule ids of a wrapped tool
 
-A runner reports findings about tools it wraps. Such a finding's `rule` is `<tool>/<rule>`, where
-`<tool>` is the wrapped tool's name. When the tool printed the finding, `<rule>` is the id as that
-tool prints it, which may itself contain `/`. When the runner raised it about the tool's run, such
-as a failure to start, `<rule>` is the runner's own word.
+A runner reports findings that the tools it wraps printed. Such a finding's `rule` is
+`<source>/<rule>`. `<source>` is the runner's name for what produced the finding: the wrapped
+tool's name, or the name of the parser that read its output when the runner does not know which
+tool the command is. `<rule>` is the id as the tool prints it, which may itself contain `/`. The
+prefix is required, because two tools may use the same id for different rules.
 
-The contract fixes this form and no list. Which rule ids a runner has is its own content, as
-urzua's rules are urzua's, and each tool lists its own.
+A finding the runner raises itself, about a tool's run or about the run as a whole, has a rule id
+of the runner's own choosing, with a prefix or without. Those ids are the runner's content, as
+urzua's rules are urzua's. The contract fixes the form above and no list.
 
 ### 6. How a command accepts its scopes
 
@@ -114,7 +123,9 @@ A command that declares a scope in `describe` accepts it as follows.
 - `base-ref`: as `--base <ref>`.
 
 urzua's `check` already takes both this way. A runner that calls a command it knows only through
-`describe` passes scopes in this form and no other.
+`describe` passes scopes in this form and no other. A command that takes paths in another form does
+not declare `paths`. garita's `run` is one: its positional arguments are check names, so it takes
+files through a flag and declares only `base-ref`.
 
 ### 7. What is not taken
 
@@ -151,9 +162,11 @@ is tagged when that passes, as `v1.0.0` waited for urzua.
 
 ### 10. What each tool changes
 
-**garita** changes its `describe` profile for `run` to `run`, validates its report against
-`run-report.schema.json`, and rewrites the parts of its records that restate or extend the contract
-to cite this repository. Its output keeps every key it prints today.
+**garita** adds `describe`, which it does not have yet, and declares each command that prints its
+report type as profile `run`, including the two that select no checks. It validates its reports
+against `run-report.schema.json`, drops `check` from findings about the run itself (§4), and
+rewrites the parts of its records that restate or extend the contract to cite this repository. Its
+output keeps every other key it prints today.
 
 **urzua** changes nothing. Its `check` is a gate, not a runner.
 
@@ -166,8 +179,9 @@ to cite this repository. Its output keeps every key it prints today.
 - **Whether a tool's own flags and configuration are outside the contract.** §7 says they are. The
   ruling says garita defines no input contract. If the maintainer means a runner's configuration
   file too, it needs a schema here, and that is a larger piece of work.
-- **`trigger` and `scope.kind` as closed lists.** They are garita's words today. A second runner
-  with another trigger would need a minor release to add a value.
+- **`trigger` and `scope.kind` as closed lists.** They are garita's words today, and garita has
+  confirmed it prints no others. A second runner with another trigger would need a minor release
+  to add a value.
 
 ## Non-goals
 
