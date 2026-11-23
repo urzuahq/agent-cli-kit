@@ -1,7 +1,8 @@
 ---
 Stable-Id: 01M838QGHE1E3K5ZB49PWEXY6V
-Status: Draft
+Status: Accepted
 Date: 2026-11-23
+Accepted-on: 2026-11-23
 Author: beauwilliams
 ---
 # 1 — The agent CLI contract
@@ -235,6 +236,12 @@ urzua's current shape with those additions.
 - A shared code library in version 1, in Rust or any other language. The schemas are the contract.
 - A runner that executes arbitrary binaries.
 - Anything about how a tool computes its findings.
+
+## Revisions
+
+| Date | Change |
+|---|---|
+| 2026-11-23 | Accepted by the maintainer. Their words: "Move it to accepting? Let's unblock it". Asked directly which Status to record, they chose Accepted. The receipt (§5) stays a draft and the open questions stay open. |
 
 ## References
 
