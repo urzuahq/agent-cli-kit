@@ -1,0 +1,104 @@
+{
+  "receipt_version": 1,
+  "run_id": "01M83QK1EP1VJAS4ZFMB3NX9J8",
+  "started_at": "2026-11-23T08:15:34Z",
+  "finished_at": "2026-11-23T08:15:34Z",
+  "trigger": "commit",
+  "commit": null,
+  "tree": "470afc2bf2c09437403d7e841d0bf964a5a5e385",
+  "worktree": "470afc2bf2c09437403d7e841d0bf964a5a5e385",
+  "dirty": false,
+  "config_hash": "26fa87aa96056835fe26676798a8cdde0763bfc3",
+  "machine": "devbox",
+  "tool": {
+    "name": "garita",
+    "version": "0.1.0"
+  },
+  "result": "PASSED",
+  "checks": [
+    {
+      "name": "style",
+      "kind": "other",
+      "command": "bin/ok src/c.ts",
+      "scope": {
+        "kind": "staged",
+        "files": [
+          "src/c.ts"
+        ]
+      },
+      "tool_version": null,
+      "started_at": "2026-11-23T08:15:34Z",
+      "finished_at": "2026-11-23T08:15:34Z",
+      "duration_ms": 5,
+      "exit_code": 0,
+      "status": "pass",
+      "examined": {
+        "files": 1
+      },
+      "output_tail": "",
+      "output": ".garita/receipts/01M83QK1EP1VJAS4ZFMB3NX9J8/style.log"
+    },
+    {
+      "name": "always",
+      "kind": "other",
+      "command": "bin/ok",
+      "scope": {
+        "kind": "staged",
+        "files": [
+          "src/c.ts"
+        ]
+      },
+      "tool_version": null,
+      "started_at": "2026-11-23T08:15:34Z",
+      "finished_at": "2026-11-23T08:15:34Z",
+      "duration_ms": 5,
+      "exit_code": 0,
+      "status": "pass",
+      "examined": {},
+      "output_tail": "",
+      "output": ".garita/receipts/01M83QK1EP1VJAS4ZFMB3NX9J8/always.log"
+    }
+  ],
+  "report": {
+    "schema_version": 1,
+    "status": "pass",
+    "blocking": false,
+    "trigger": "commit",
+    "commit": null,
+    "tree": "470afc2bf2c09437403d7e841d0bf964a5a5e385",
+    "scope": {
+      "kind": "staged",
+      "files": [
+        "src/c.ts"
+      ]
+    },
+    "checks": [
+      {
+        "name": "style",
+        "kind": "other",
+        "status": "pass",
+        "duration_ms": 5,
+        "examined": {
+          "files": 1
+        },
+        "rerun": "garita run style"
+      },
+      {
+        "name": "always",
+        "kind": "other",
+        "status": "pass",
+        "duration_ms": 5,
+        "examined": {},
+        "rerun": "garita run always"
+      }
+    ],
+    "findings": [],
+    "examined": {
+      "files": 1
+    },
+    "next_action": null,
+    "next_action_reason": null,
+    "next_action_inputs": [],
+    "receipt": ".garita/receipts/20261123T081534Z-commit-01M83QK1EP1VJAS4ZFMB3NX9J8.json"
+  }
+}
