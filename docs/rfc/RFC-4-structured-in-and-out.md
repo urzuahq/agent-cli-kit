@@ -73,15 +73,37 @@ on them.
   the exit code is read with it. If it is not, the command could not run, whatever the exit code
   was or whether there was one. The reader treats it as `not-run`, may keep any stderr text as a
   diagnostic, and never parses it.
-- **No logging to stderr**, with or without a flag. Neither tool logs today. A tool that needs a
-  log writes it to a file and names the file in its report.
+- **A log, on request, and structured.** A tool may have a diagnostic log. It is off unless the
+  caller turns it on, and when it is on, stderr carries the log and nothing else. The rules are in
+  §2.1.
 - **Whoever wrote it counts.** A warning from a runtime or a dependency is the tool's to silence
   or capture. A tool that runs other tools captures their output and passes none of it through.
 - **A warning about the tool's own environment** is an entry of `notices`, as urzua's deprecated
   alias already is.
 
-Cost: urzua already catches panics and prints `not-run`, with the text under a key of its own that
-moves to `error`. garita wraps one command and extends that to the rest. Both called it small.
+#### 2.1 The log
+
+A log is for whoever is debugging the tool. A reader of the report never needs it: nothing a
+reader acts on is only in the log.
+
+- **Off by default.** With no request, a command writes nothing to stderr, as above.
+- **Turned on by a declared input.** `describe` carries `log` at the top level: null when the tool
+  has no log, or an object that names the one input that turns it on. `{"arg": "--log"}` names a
+  flag in the tool's top-level `args`. `{"env": "URZUA_LOG"}` names a variable in `env`, which
+  turns the log on when it is set to `1`.
+- **One JSON object per line.** With the log on, every line the command writes to stderr is one
+  JSON object, and `schemas/log-line.schema.json` describes it. It has three required keys:
+  `time` (RFC 3339, UTC), `level` (`debug`, `info`, `warning` or `error`, the words a finding's
+  severity uses, with `debug` added) and `message` (text, never parsed). A tool may add keys of
+  its own.
+- **The report is unchanged.** stdout is the same one JSON object and the exit code is the same,
+  with the log on or off.
+
+Neither tool has a log today, so this costs nothing until one wants it.
+
+Cost of the rest of §2: urzua already catches panics and prints `not-run`, with the text under a key
+of its own that moves to `error`. garita wraps one command and extends that to the rest. Both called
+it small.
 
 ### 3. `--help` and `--version`
 
@@ -117,9 +139,37 @@ carries a usage block, a heading, or another tool's output.
 - **A wrapped tool's output.** In the run profile, each entry of `checks` may carry `output_tail`,
   the last 4,000 characters of the check's output, and `output`, the path of the full output: the
   same two keys a receipt's check has. A finding's `message` no longer carries them.
-- **A command to run.** `next_action` and a finding's `fix` stay shell command strings, as RFC-1
-  decided, with their `<...>` placeholders listed in `next_action_inputs`. An argv form is deferred
-  (§10).
+- **A command to run.** A command is data, and a shell string makes a reader parse quoting to get
+  it back. From 1.1 a command is also printed as its arguments. §4.1 says how.
+
+#### 4.1 A command as its arguments
+
+`next_action` stays the string RFC-1 defined, so a reader written for 1.0 keeps working. Beside it
+a report carries the same command as data.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `next_action_argv` | array of strings, or null | The command as one program and its arguments: the first element is the program, each further element is one argument, with no shell quoting. Null exactly when `next_action` is null. |
+| `index`, on each entry of `next_action_inputs` | integer, 0 or more | The position in `next_action_argv` of the element the caller replaces. |
+
+- **A placeholder is a whole element.** The element at `index` is exactly the entry's
+  `placeholder`, such as `<record>`. A reader replaces that element with the value and runs the
+  array. It never searches a string for `<...>`.
+- **One process.** The command is one program run once: no pipe, no `&&`, no redirection, no
+  variable or glob for a shell to expand. RFC-1 already says `next_action` is one command.
+- **The two forms agree.** `next_action` is `next_action_argv` joined by spaces, with each element
+  quoted for a POSIX shell where it needs to be.
+- **A finding's `fix`** gets the same treatment: `fix_argv`, an array of strings, beside `fix`. A
+  `fix` carries no placeholders. It runs as printed.
+
+A tool that prints `contract_version` `"1.1"` prints `next_action_argv` in every report, gives
+every input an `index`, and prints `fix_argv` wherever it prints `fix`. A report does not carry
+the contract version, so the schema makes these keys optional and ties them together when they are
+present, and the runner checks that a 1.1 tool prints them (§8).
+
+Cost: garita builds its command from arguments before joining them, so this is cheap there. urzua
+builds some of its actions as strings and reported about a day's work to build them all from
+arguments.
 
 garita also prints a few lines it picks out of a failing command's output as the likely reason. A
 tail cannot carry those. That list stays garita's own extended key until a second tool wants it.
@@ -142,9 +192,40 @@ server. They cannot print the contract's report on stdout, because stdout belong
 - **A hook script a tool installs** is part of the tool. When the tool's binary is missing, the
   script prints a `not-run` report as a literal: `status` `not-run`, an `error`, `error_kind`
   `environment`, `next_action` and `next_action_reason` null, and an empty `next_action_inputs`.
-  What the script exits with is the host's protocol and the tool's own policy, not this contract's.
+- **A hook that cannot run its tool blocks.** §5.1 states the rule.
 
-Cost: garita's hook already prints only the report when it blocks, and needs a new hook format for
+#### 5.1 A hook that cannot run its tool blocks
+
+A hook exists so that something does not happen unless the tool has looked at it. If the tool
+could not look, the hook does not let it happen. This is one rule for every tool.
+
+- **When it applies.** The hook could not get a verdict: the tool's binary is missing or cannot
+  start, or the tool answered with a `not-run` report.
+- **Which hooks.** Every hook a tool installs or answers that the host consults before it acts,
+  and whose answer can stop the action. A git `pre-commit` or `pre-push` hook is one. So is an
+  agent harness hook that runs before an edit or a command.
+- **What block means** is the host's to define, and the tool uses the host's way of saying no. For
+  a git hook it is exit status 2, the same number a command uses for `not-run`; git stops on any
+  status but 0, so a hook that ran and found something blocking exits 1 and one that could not run
+  exits 2. For an agent harness hook it is the answer in that host's format that refuses the
+  action.
+- **A hook that runs after the fact cannot block.** It prints the `not-run` report in the host's
+  format and that is all it can do. A `post-command` hook is one.
+- **No configuration key turns this off.** A tool's configuration decides what the tool judges and
+  how strictly. It does not decide what happens when the tool could not judge at all. What a tool
+  does when it ran and has no opinion on a change is a different question, and stays the tool's.
+- **The host's own way round is the host's.** `git commit --no-verify` skips a hook, and this rule
+  says nothing about it.
+
+Cost: garita's hooks already exit 2 here. urzua's git hooks exit 0 today and leave CI as the
+guarantee, by a decided choice in its own records. Reversing it is a small edit to protected hook
+files, a flipped test, a new decision record that supersedes the old choice, and an amendment to
+two more. urzua put it at about a day plus the maintainer's edit. A fresh clone of urzua then
+cannot commit until the tool is built. urzua's agent harness hook already refuses in a governed
+session, with one case that is let through with a notice and would now refuse.
+
+Cost of the rest of §5: garita's hook already prints only the report when it blocks, and needs a
+new hook format for
 the missing-binary case, installed once per repository. urzua's git hooks print a banner and a
 closing line that go, and the prose its harness hook prints when the binary is missing becomes the
 same `not-run` literal, in the form that host accepts. An install script is not a command of the
@@ -200,8 +281,11 @@ Both tools said they can generate `args` from their argument definitions. What t
 have that the first shape lacked is in the table above: nested commands, global options, exclusion
 and requirement between arguments, a date, and arguments after `--`.
 
-`system` is unchanged. It describes the tool's own computation. A tool that runs others, and whose
-own work is deterministic, is `0`, and each tool it runs declares its own.
+**The log.** The tool carries `log`, null or the object of §2.1.
+
+`system` is unchanged, by the maintainer's decision. It describes the tool's own computation. A tool
+that runs others, and whose own work is deterministic, is `0`, and each tool it runs declares its
+own.
 
 ### 7. No prompts, and no dependence on a terminal
 
@@ -229,7 +313,17 @@ in. It does what an agent would do first, and checks the answers.
    command's profile; stderr is empty; and the exit code is 2 exactly when `status` is `not-run`.
    For the gate and run profiles, whose reports carry `blocking`, the exit code is otherwise 1
    exactly when `blocking` is true. For the base profile it is otherwise 0 or 1.
-4. It runs `<tool> --version` and checks the one line of §3.
+4. For a tool that prints `contract_version` `"1.1"` it also checks, in every report, what the
+   schema leaves optional: `next_action_argv` is present; every entry of `next_action_inputs` has
+   an `index`, and the element there is the entry's `placeholder`; and every finding with a `fix`
+   has a `fix_argv`.
+5. If `describe` declares a `log`, it runs one safe command again with the log turned on, and
+   checks that every line on stderr validates against `log-line.schema.json` and that stdout and
+   the exit code are what they were with the log off.
+6. It runs `<tool> --version` and checks the one line of §3.
+
+The runner does not run hooks. The rule of §5.1 is one each tool tests itself, with its binary
+taken away.
 
 Each run has a time limit, 60 seconds unless the caller sets another, and a run that exceeds it
 fails. `safe` says a command writes nothing. A tool whose safe command is slow, or needs a network,
@@ -252,7 +346,8 @@ A tool that prints `contract_version` `"1.1"`:
 
 - answers `describe` with exit code 0, and its `describe` declares `args`, `env`, `stdin` and
   `config` as §6 says;
-- writes nothing to stderr (§2) and follows §3, §4, §5 and §7;
+- writes nothing to stderr unless its log was asked for (§2), prints every command as its
+  arguments (§4.1), blocks in a hook that cannot run it (§5.1), and follows §3, §4, §5 and §7;
 - passes the runner of §8 in its CI.
 
 A tool that prints `"1.0"` is held to RFC-1 as it stood at `v1.0.0`. Nothing that conformed to 1.0
@@ -266,17 +361,19 @@ settled as one version.
 
 | Point | Decision | Version |
 |---|---|---|
-| stderr empty, top-level handler, no logging | Taken | 1.1 |
+| stderr empty, top-level handler | Taken | 1.1 |
+| A log on request, one JSON object per line | Taken | 1.1 |
 | `--version` fixed, `--help` outside the contract | Taken | 1.1 |
 | Which strings are text and which are data | Taken | 1.1 |
 | `error_kind` | Taken, optional key | 1.1 |
 | `output_tail` and `output` on a check entry | Taken, optional keys | 1.1 |
 | `protocol` on an `exempt` command; hooks print the report | Taken | 1.1 |
+| A hook that cannot run its tool blocks | Taken | 1.1 |
+| A command as its arguments: `next_action_argv`, `index`, `fix_argv` | Taken | 1.1 |
 | `describe` declares `args`, `env`, `stdin`, `config` | Taken | 1.1 |
 | No prompts, no dependence on a terminal | Taken | 1.1 |
 | The conformance runner | Taken | 1.1 |
 | A JSON Schema for a tool's configuration | Optional key now; required is deferred | later |
-| `next_action` as an argv array | Deferred: additive, and urzua reported a day's work to build every action from words | later minor |
 | garita's picked-out lines of a failing output | Not taken; garita's own extended key | when a second tool wants it |
 
 `v1.1.0` waits for this RFC. The run profile of RFC-3 is already in `v1.1.0-rc.2`, and garita's
@@ -288,9 +385,12 @@ contract that stays put, and one settled 1.1 serves that better than a 1.1 follo
 ### 11. What changes in the schemas and in RFC-1
 
 - `describe.schema.json`: `args` at the top level and per command, `env`, `stdin`, `config`,
-  `example`, and `protocol`, each required as §6 and §5 say when `contract_version` is not
+  `example`, `log` and `protocol`, each required as §6 and §5 say when `contract_version` is not
   `"1.0"`.
-- `report.schema.json`: optional `error_kind`.
+- `report.schema.json`: optional `error_kind`; optional `next_action_argv`, null exactly when
+  `next_action` is null; optional `index` on an entry of `next_action_inputs`.
+- `finding.schema.json`: optional `fix_argv`.
+- `log-line.schema.json`, new: one line of a log.
 - `run-report.schema.json`: optional `output_tail` and `output` on a check entry.
 - `scripts/conform.py`, and `make check` runs it against a small fixture tool so that the runner
   itself is tested.
@@ -309,24 +409,31 @@ No JSON Schema keyword outside the checked list is needed.
 **urzua**: ships `describe` with its inputs; moves a panic's text to `error` and sets `error_kind`;
 builds a usage error's message without the parser's usage block; removes the menu in `init`; drops
 the banner and closing line from its git hooks and the prose from its harness hook's missing-binary
-case; runs the runner in CI.
+case; makes its git hooks exit 2 when the tool cannot run, with the records that decision touches;
+builds every `next_action` from arguments; runs the runner in CI.
 
 **garita**: extends its panic handler to every command; sets `error_kind`; moves captured output
 from `message` to `output_tail` and `output` on the check; adds `args`, `env`, `stdin` and `config`
-to `describe`; ships a hook format that prints a `not-run` report when the binary is missing; runs
-the runner in CI.
+to `describe`; ships a hook format that prints a `not-run` report when the binary is missing;
+prints `next_action_argv`; runs the runner in CI.
 
 ## Open questions
 
-- **A runner at all.** RFC-1 deferred a live conformance checker until a third tool conformed, by
-  the maintainer's decision. §8 brings it forward and narrows it to a tool's own safe commands.
-  That reversal is theirs to confirm.
-- **Is passing the runner required for 1.1, or recommended?** §9 requires it. urzua notes that
-  adding Python and a validator to its CI is a workflow change the maintainer approves there.
-- **No logging to stderr even on request.** §2 allows none. If a tool's developers need a debug
-  stream, the alternative is a log file named in the report.
-- **What a hook exits with when the tool cannot run.** urzua's hook exits 0 and leaves CI as the
-  guarantee; garita's exits 2 and stops the commit. §5 leaves this to each tool.
+All four questions this record first asked were answered by the maintainer on 2026-11-23, with two
+more decisions (see Revisions). What is left is theirs to confirm, because it is new text:
+
+- **The log's shape** (§2.1): the three required keys, the level words, and that it is declared in
+  `describe`.
+- **A command as its arguments** (§4.1): the key names, a placeholder being a whole element, and
+  that a `fix` carries no placeholders.
+- **The hook rule** (§5.1): exit status 2 for a git hook that could not run its tool, that no
+  configuration key turns the rule off, and that a hook which runs after the fact is outside it.
+
+## Revisions
+
+| Date | Change |
+|---|---|
+| 2026-11-23 | The maintainer answered the open questions, by voice. The transcription is rough; bracketed words are the relay's reading. "let's build the runner now. And it's going to be required for 1.1. Um, we can do STD [logging] on request. In fact, actually, we could do a structured logging output. [...] Next action should actually be structured. Maybe we just decide on that now! Yeah, let's standardize the [exit of the] hook. With the block. And yeah, let's decide on the system value is [zero]. And then I'll accept [RFC-4]." So: the runner is built now and passing it is required for 1.1 (§8, §9, unchanged); a log is allowed on request and is structured (§2.1, new; §2 had allowed none); a command is printed as its arguments in 1.1 (§4.1, new; it had been deferred); a hook that cannot run its tool blocks, for every tool (§5.1, new; §5 had left it to each tool); `system` is 0 for a tool that runs others (§6, unchanged). §2.1, §4.1 and §5.1 are text the maintainer has not yet read. This record stays Draft until they have. |
 
 ## Non-goals
 
