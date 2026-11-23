@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "not-run",
+  "blocking": false,
+  "trigger": "commit",
+  "commit": null,
+  "tree": "b2e38da163c79603aa61be6f1469bccbfc6bd6fe",
+  "scope": {
+    "kind": "staged",
+    "files": [
+      ".garita/config.yaml",
+      ".gitignore",
+      "bin/ok"
+    ]
+  },
+  "checks": [
+    {
+      "name": "always",
+      "kind": "other",
+      "status": "pass",
+      "duration_ms": 5,
+      "examined": {},
+      "rerun": "garita run always"
+    },
+    {
+      "name": "missing",
+      "kind": "other",
+      "status": "not-run",
+      "duration_ms": 0,
+      "examined": {},
+      "rerun": "garita run missing"
+    }
+  ],
+  "findings": [],
+  "examined": {},
+  "next_action": "garita doctor",
+  "next_action_reason": "1 check could not run",
+  "next_action_inputs": [],
+  "receipt": ".garita/receipts/20261123T081542Z-commit-01M83QK9F7NR46K870K6MEYD84.json",
+  "error": "checks.missing: could not start `no-such-program-xyz`: No such file or directory (os error 2)"
+}

@@ -17,6 +17,10 @@ something: it adds `blocking`, `findings` and `examined`. A tool also answers `d
 names its commands, their profile and whether they write. A **receipt** is the record a gate writes
 for each run.
 
+Version 1.1 adds a third profile on top of those two layers. The **run profile**, defined in RFC-3,
+applies to a command that runs other checks and returns one verdict: it is the gate profile plus
+the list of checks that ran.
+
 The contract is urzua's existing output shape, written down. Version 1.0 is schema-only. A tool
 conforms by validating its own output against the schemas in its own tests.
 
@@ -87,8 +91,9 @@ as urzua does (`examples/valid/gate-report.urzua-not-run.json`). A `not-run` rep
 
 A finding has required `rule` (a stable id), `severity` (`error`, `warning` or `info`) and
 `message`. It has optional `file` (repository-relative, or null), `line` and `column` (integers of
-at least 1, or null), `fix` (the tool's own command that fixes it) and `fingerprint` (stable across
-runs for the same finding).
+at least 1, or null), `fix` (the tool's own command that fixes it), `fingerprint` (stable across
+runs for the same finding) and, from version 1.1, `check` (the name of the check that produced it,
+in a report that lists its checks).
 
 Whether a finding blocks is the tool's decision, reported only through `blocking` and the exit code.
 `status` stays tool-defined. Findings are open like reports: a tool may add keys.
@@ -98,13 +103,14 @@ Whether a finding blocks is the tool's decision, reported only through `blocking
 `<tool> describe` prints one JSON object:
 
 - `name`, `version`
-- `contract_version`: a string `"<major>.<minor>"`, here `"1.0"`
+- `contract_version`: a string `"<major>.<minor>"`: `"1.0"`, or `"1.1"` for a tool that uses
+  anything version 1.1 added
 - `system`: 0, 1 or 2. 0 is deterministic compute, 1 a decision model, 2 LLM inference
 - `commands`: an array of `{name, profile, safe, scopes, metrics}`, where `profile` is `base`,
-  `gate` or `exempt`; `safe` is true when the command writes nothing; `scopes` lists what it accepts
-  (`paths`, `base-ref`); and `metrics` lists the numbers it reports (`duration_ms`, `files`). A
-  command may also state its `kind`: `lint`, `format`, `types`, `test`, `build`, `records` or
-  `other`, the same words a receipt uses for a check
+  `gate`, `exempt` or, from version 1.1, `run`; `safe` is true when the command writes nothing;
+  `scopes` lists what it accepts (`paths`, `base-ref`); and `metrics` lists the numbers it reports
+  (`duration_ms`, `files`). A command may also state its `kind`: `lint`, `format`, `types`, `test`,
+  `build`, `records` or `other`, the same words a receipt uses for a check
 
 `describe` is not itself a base report. On success it prints the object above, with no `status` and
 no `next_action` keys, and exits 0. When it cannot run it behaves like any other command: it prints
@@ -181,9 +187,9 @@ A run that could not run still writes a receipt. Its `report` has `status` `not-
 ### 6. Conformance
 
 Conformance is two artifacts and no runner. `schemas/` holds JSON Schema 2020-12 files for the base
-report, the finding, the gate report, `describe` and the receipt. `examples/` holds a corpus: valid
-examples that must validate, and invalid examples that must not, each violating one rule and named
-for it. CI in this repository checks that the corpus behaves as stated.
+report, the finding, the gate report, the run report, `describe` and the receipt. `examples/` holds
+a corpus: valid examples that must validate, and invalid examples that must not, each violating one
+rule and named for it. CI in this repository checks that the corpus behaves as stated.
 
 Each tool validates its own output against the schemas in its own tests. The contract does not
 execute other people's binaries: commands can write, and a runner that executes arbitrary commands
@@ -242,6 +248,7 @@ urzua's current shape with those additions.
 | Date | Change |
 |---|---|
 | 2026-11-23 | Accepted by the maintainer. Their words: "Move it to accepting? Let's unblock it". Asked directly which Status to record, they chose Accepted. The receipt (§5) stays a draft and the open questions stay open. |
+| 2026-11-23 | Version 1.1, from RFC-3, accepted by the maintainer the same day: the run profile and its schema, `run` in the list of profiles, and an optional `check` on a finding. The Summary, §2, §3 and §6 say so. Nothing in the base layer or the gate profile changes. |
 
 ## References
 
