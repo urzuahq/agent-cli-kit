@@ -55,7 +55,11 @@ Every command that reports a result obeys these rules.
   | `status` | string | Tool-defined per command, except `not-run`, which is reserved: the command could not run, and it exits 2. |
   | `next_action` | string or null | One command to run next. |
   | `next_action_reason` | string or null | Why, from counts. `null` exactly when `next_action` is `null`. |
-  | `next_action_inputs` | array of strings | The `<...>` placeholders the command carries. Empty when it runs as printed. |
+  | `next_action_inputs` | array of objects | One entry per `<...>` placeholder the command carries. Empty when it runs as printed. |
+
+  Each entry of `next_action_inputs` has three required strings: `placeholder` (the word as printed
+  in `next_action`, always written `<...>`), `flag` (the option it belongs to, such as `--reason`)
+  and `means` (what to put there).
 
 - **Optional keys.** `error` (string): present when `status` is `not-run` because the run could not
   start. `notices`: an array of `{severity, subject, message}`. `schema_version`: an integer, the
@@ -65,10 +69,14 @@ Every command that reports a result obeys these rules.
 
 `schemas/report.schema.json` encodes the two conditional rules: `next_action_reason` is null exactly
 when `next_action` is null, and `error` present requires `status` to be `not-run`.
+`examples/valid/report.urzua-inputs.json` is a report urzua 0.4.13 printed, with one input.
 
 ### 2. The gate profile
 
-A command that judges something adds three required keys to the base.
+A command that judges something adds three keys to the base. All three are required unless `status`
+is `not-run`: a gate that could not run has judged nothing, so it may print the base report alone,
+as urzua does (`examples/valid/gate-report.urzua-not-run.json`). A `not-run` report never carries
+`blocking: true`, because it exits 2 and `blocking` is true exactly when the exit code is 1.
 
 - `blocking`: boolean, true exactly when the exit code is 1.
 - `findings`: an array of findings.
@@ -108,14 +116,27 @@ keys, so a reader written for 1.0 reads 1.3 output unchanged.
 A receipt is the record a gate writes for each run. It is a draft and is expected to change while
 garita's first phase is built.
 
-`receipt_version` (integer), `run_id`, `started_at` (RFC 3339 UTC), `trigger`, `tree` (the git tree
-hash), `commit` (string or null), `dirty` (boolean), `config_hash`, `machine`, `tool`
-(`{name, version}`), `result`, `checks` and `report`.
+The field list follows garita RFC-1 §8: `receipt_version` (integer), `run_id` (a ULID),
+`started_at` and `finished_at` (RFC 3339 UTC), `trigger`, `commit` (string or null), `tree` (a git
+tree hash), `worktree` (a tree hash computed from the working files, which is what the checks saw),
+`dirty` (boolean), `config_hash`, `machine`, `tool` (`{name, version}`), `result`, `checks` and
+`report`.
+
+`worktree` is how a reader tells whether a check ran after the last edit: it did if the working
+files still hash to the receipt's `worktree`. That answer needs no comparison of clocks.
 
 `result` is `PASSED`, `WARNED` or `FAILED`, the vocabulary of the in-toto test-result predicate, so
-a receipt can later be wrapped in a signed statement. Each entry of `checks` has `name`, `command`,
-`scope`, `tool_version` (string or null), `duration_ms`, `status`, `blocking` and `examined`.
-`report` is the gate-profile report the run printed.
+a receipt can later be wrapped in a signed statement. Each entry of `checks` has `name`, `kind`
+(`lint`, `format`, `types`, `test`, `build`, `records` or `other`, so a reader knows what a pass
+proves), `command`, `scope` (an object with a `kind`, such as
+`{"kind": "affected", "packages": [...]}`), `tool_version` (string or null), `started_at`,
+`finished_at`, `duration_ms`, `exit_code` (the check's own exit code, or null when it was killed or
+never started), `status`, `examined`, `output_tail` (the last 4,000 characters of the check's
+output) and `output` (the path of the full output, kept beside the receipt). `report` is the
+gate-profile report the run printed.
+
+A run that could not run still writes a receipt. Its `report` has `status` `not-run` and its
+`result` is `FAILED`: a gate that could not run is not evidence of a pass.
 
 ### 6. Conformance
 

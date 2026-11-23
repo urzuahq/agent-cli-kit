@@ -11,7 +11,7 @@ examples validate. The record is
 | Layer | Applies to | Required |
 |---|---|---|
 | Base | Any command that reports a result | `status`, `next_action`, `next_action_reason`, `next_action_inputs`; one JSON object on stdout; exit 0, 1 or 2 |
-| Gate | A command that judges something | The base, plus `blocking`, `findings`, `examined` |
+| Gate | A command that judges something | The base, plus `blocking`, `findings`, `examined` (not required when `status` is `not-run`) |
 
 A tool also answers `<tool> describe`, and a gate writes a receipt for each run. Both are in the
 RFC.
