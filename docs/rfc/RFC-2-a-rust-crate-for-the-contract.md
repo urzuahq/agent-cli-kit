@@ -135,11 +135,11 @@ tools allow (MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception or Unicode-3.0) and
 The validator considered was the `boon` crate, version 0.6, which the urzua thread named. Its
 dependency tree was resolved on 2026-11-23 and does not meet those conditions as it stands. One
 crate in it, `borrow-or-share`, is under MIT-0 alone, which neither tool's licence list allows. The
-newest `icu` crates it resolves to need Rust 1.88. A tool can work around both in its own repository, with a licence exception and a
-pinned lockfile, and that is each tool's decision. The crate cannot make that decision for them, so
-the first release has no `validate` feature. It ships the schema text and `assert_contract`, and
-each tool goes on validating its output in its own way. The feature is added when a validator's
-tree passes both tools' checks unchanged.
+newest `icu` crates it resolves to need Rust 1.88. A tool can work around both in its own
+repository, with a licence exception and a pinned lockfile, and that is each tool's decision. The
+crate cannot make that decision for them, so the first release has no `validate` feature. It ships
+the schema text and `assert_contract`, and each tool goes on validating its output in its own way.
+The feature is added when a validator's tree passes both tools' checks unchanged.
 
 ### 4. How it is published
 
