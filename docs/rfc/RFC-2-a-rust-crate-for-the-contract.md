@@ -47,8 +47,8 @@ pinned by the tool's lockfile, works offline, and needs no drift check.
 - `NextActionKeys`, built from an `Option<NextAction>`. It always serializes all three keys,
   `next_action`, `next_action_reason` and `next_action_inputs`, byte for byte what urzua prints
   today: two nulls and an empty array when there is no action. The crate flattens nothing itself.
-  A tool writes the three keys as its own fields from these values, or holds `NextActionKeys` in
-  the one wrapper its own design allows, as urzua's ADR-46 amendment does
+  A tool may serialize `NextActionKeys` as it is, or copy its three values into fields of its own,
+  as urzua's one wrapper does under its ADR-46 amendment
 - `Severity`: `error`, `warning`, `info`, ordered so that `error` is greater than `warning` and
   `warning` greater than `info`
 - `Examined`: a map from a unit name to a count
@@ -93,7 +93,9 @@ schemas, and a tool's test can write them to a directory for a validator outside
   `not-run` report; the exit code is 2 exactly when `status` is `not-run`. For the gate profile it
   adds: `blocking`, `findings` and `examined` are present unless the report is `not-run`; `blocking`
   is true exactly when the exit code is 1; a `not-run` report is not blocking. The rules that tie a
-  report to its exit code are ones no schema can express. Each rule is a sentence of RFC-1 §1 or §2.
+  report to its exit code are ones no schema can express. Each rule comes from RFC-1 §1 or §2. One
+  is read from two sentences there: a `not-run` report exits 2, and exit code 2 means the command
+  could not run.
 - `assert_conforms(Schema::GateReport, &value)`, behind a feature named `validate`, validates a
   value against the embedded schemas with a JSON Schema 2020-12 validator and prints its errors. The
   feature is off by default, and a tool turns it on only as a dev-dependency. It is not in the first
@@ -132,9 +134,8 @@ tools allow (MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception or Unicode-3.0) and
 
 The validator considered was the `boon` crate, version 0.6, which the urzua thread named. Its
 dependency tree was resolved on 2026-11-23 and does not meet those conditions as it stands. One
-crate in it, `borrow-or-share`, is
-under MIT-0 alone, which neither tool's licence list allows. The newest `icu` crates it resolves to
-need Rust 1.88. A tool can work around both in its own repository, with a licence exception and a
+crate in it, `borrow-or-share`, is under MIT-0 alone, which neither tool's licence list allows. The
+newest `icu` crates it resolves to need Rust 1.88. A tool can work around both in its own repository, with a licence exception and a
 pinned lockfile, and that is each tool's decision. The crate cannot make that decision for them, so
 the first release has no `validate` feature. It ships the schema text and `assert_contract`, and
 each tool goes on validating its output in its own way. The feature is added when a validator's
