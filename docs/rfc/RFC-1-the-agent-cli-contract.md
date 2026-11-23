@@ -238,7 +238,8 @@ urzua's current shape with those additions.
 
 ## Non-goals
 
-- A shared `status` enum. Status is tool-defined.
+- A shared `status` enum. Status is tool-defined in the base layer and the gate profile. The run
+  profile of version 1.1 fixes its own words (RFC-3).
 - A shared code library in version 1, in Rust or any other language. The schemas are the contract.
 - A runner that executes arbitrary binaries.
 - Anything about how a tool computes its findings.
@@ -248,7 +249,7 @@ urzua's current shape with those additions.
 | Date | Change |
 |---|---|
 | 2026-11-23 | Accepted by the maintainer. Their words: "Move it to accepting? Let's unblock it". Asked directly which Status to record, they chose Accepted. The receipt (§5) stays a draft and the open questions stay open. |
-| 2026-11-23 | Version 1.1, from RFC-3, accepted by the maintainer the same day: the run profile and its schema, `run` in the list of profiles, and an optional `check` on a finding. The Summary, §2, §3 and §6 say so. Nothing in the base layer or the gate profile changes. |
+| 2026-11-23 | Version 1.1, from RFC-3, accepted by the maintainer the same day: the run profile and its schema, `run` in the list of profiles, and an optional `check` on a finding. The Summary, §2, §3 and §6 say so. Nothing in the base layer or the gate profile changes. The run profile fixes its `status` words, by the maintainer's decision of the same day; `status` stays tool-defined in the base layer and the gate profile. |
 
 ## References
 

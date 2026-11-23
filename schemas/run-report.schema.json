@@ -7,6 +7,7 @@
     {
       "type": "object",
       "properties": {
+        "status": {"enum": ["pass", "warn", "fail", "not-run"]},
         "checks": {
           "type": "array",
           "items": {
@@ -15,7 +16,7 @@
             "properties": {
               "name": {"type": "string", "minLength": 1},
               "kind": {"enum": ["lint", "format", "types", "test", "build", "records", "other"]},
-              "status": {"type": "string", "minLength": 1},
+              "status": {"enum": ["pass", "warn", "fail", "skipped", "not-run"]},
               "duration_ms": {"type": "integer", "minimum": 0},
               "examined": {
                 "type": "object",
