@@ -31,18 +31,30 @@
         ],
         "properties": {
           "name": {"type": "string"},
-          "kind": {"enum": ["lint", "format", "types", "test", "build", "records", "other"]},
+          "kind": {
+            "description": "What sort of check this is, so a reader knows what a pass proves.",
+            "enum": ["lint", "format", "types", "test", "build", "records", "other"]
+          },
           "command": {"type": "string"},
           "scope": {
             "type": "object",
             "required": ["kind"],
-            "properties": {"kind": {"type": "string", "minLength": 1}}
+            "properties": {
+              "kind": {
+                "description": "How the check's inputs were chosen, such as affected. Not the check's kind.",
+                "type": "string",
+                "minLength": 1
+              }
+            }
           },
           "tool_version": {"type": ["string", "null"]},
           "started_at": {"$ref": "#/$defs/utc_time"},
           "finished_at": {"$ref": "#/$defs/utc_time"},
           "duration_ms": {"type": "integer", "minimum": 0},
-          "exit_code": {"type": ["integer", "null"]},
+          "exit_code": {
+            "description": "The tool's own exit code, not a shell's. Null when killed or never started.",
+            "type": ["integer", "null"]
+          },
           "status": {"type": "string"},
           "examined": {
             "type": "object",
