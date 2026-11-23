@@ -1,0 +1,6 @@
+{
+  "status": "ready",
+  "next_action": "mytool apply",
+  "next_action_reason": null,
+  "next_action_inputs": []
+}

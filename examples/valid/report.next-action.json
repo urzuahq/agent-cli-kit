@@ -1,0 +1,8 @@
+{
+  "status": "ready",
+  "next_action": "mytool apply --ids <record>",
+  "next_action_reason": "applies 2 of 2 pending changes",
+  "next_action_inputs": ["<record>"],
+  "schema_version": 1,
+  "tool": {"name": "mytool", "version": "0.3.0"}
+}

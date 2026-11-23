@@ -1,0 +1,29 @@
+{
+  "name": "urzua",
+  "version": "0.5.0",
+  "contract_version": "1.0",
+  "system": 0,
+  "commands": [
+    {
+      "name": "check",
+      "profile": "gate",
+      "safe": true,
+      "scopes": ["paths", "base-ref"],
+      "metrics": ["duration_ms", "files"]
+    },
+    {
+      "name": "fix",
+      "profile": "gate",
+      "safe": false,
+      "scopes": ["paths"],
+      "metrics": ["duration_ms"]
+    },
+    {
+      "name": "mcp",
+      "profile": "exempt",
+      "safe": true,
+      "scopes": [],
+      "metrics": []
+    }
+  ]
+}

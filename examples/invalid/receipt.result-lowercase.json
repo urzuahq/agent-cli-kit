@@ -1,0 +1,41 @@
+{
+  "receipt_version": 1,
+  "run_id": "01M8400000000000000000000A",
+  "started_at": "2026-11-23T09:30:00Z",
+  "trigger": "pre-push",
+  "tree": "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+  "commit": null,
+  "dirty": true,
+  "config_hash": "sha256:9f2c1d0e7a6b",
+  "machine": "devbox",
+  "tool": {
+    "name": "garita",
+    "version": "0.1.0"
+  },
+  "result": "pass",
+  "checks": [
+    {
+      "name": "records",
+      "command": "urzua check --base origin/main",
+      "scope": "base-ref",
+      "tool_version": "0.4.13",
+      "duration_ms": 212,
+      "status": "ok",
+      "blocking": false,
+      "examined": {
+        "files": 5
+      }
+    }
+  ],
+  "report": {
+    "status": "pass",
+    "next_action": null,
+    "next_action_reason": null,
+    "next_action_inputs": [],
+    "blocking": false,
+    "findings": [],
+    "examined": {
+      "checks": 1
+    }
+  }
+}

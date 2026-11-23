@@ -1,0 +1,6 @@
+{
+  "status": "ready",
+  "next_action": {"command": "mytool apply"},
+  "next_action_reason": "applies 1 change",
+  "next_action_inputs": []
+}

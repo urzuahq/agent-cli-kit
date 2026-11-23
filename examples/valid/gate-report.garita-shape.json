@@ -1,0 +1,20 @@
+{
+  "status": "fail",
+  "next_action": null,
+  "next_action_reason": null,
+  "next_action_inputs": [],
+  "schema_version": 1,
+  "tool": {"name": "garita", "version": "0.1.0"},
+  "blocking": true,
+  "findings": [
+    {
+      "rule": "clippy::unwrap_used",
+      "severity": "error",
+      "message": "used `unwrap()` on a `Result` value",
+      "file": "src/main.rs",
+      "line": 42,
+      "column": 18
+    }
+  ],
+  "examined": {"packages": 2, "tests": 0}
+}

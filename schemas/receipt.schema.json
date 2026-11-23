@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/urzuahq/agent-cli-kit/main/schemas/receipt.schema.json",
+  "title": "Receipt (draft)",
+  "type": "object",
+  "required": [
+    "receipt_version", "run_id", "started_at", "trigger", "tree", "commit", "dirty",
+    "config_hash", "machine", "tool", "result", "checks", "report"
+  ],
+  "properties": {
+    "receipt_version": {"type": "integer"},
+    "run_id": {"type": "string", "minLength": 1},
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z$"
+    },
+    "trigger": {"type": "string"},
+    "tree": {"type": "string", "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"},
+    "commit": {"type": ["string", "null"]},
+    "dirty": {"type": "boolean"},
+    "config_hash": {"type": "string"},
+    "machine": {"type": "string"},
+    "tool": {"$ref": "report.schema.json#/$defs/tool"},
+    "result": {"enum": ["PASSED", "WARNED", "FAILED"]},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name", "command", "scope", "tool_version", "duration_ms", "status", "blocking", "examined"
+        ],
+        "properties": {
+          "name": {"type": "string"},
+          "command": {"type": "string"},
+          "scope": {"type": "string"},
+          "tool_version": {"type": ["string", "null"]},
+          "duration_ms": {"type": "integer", "minimum": 0},
+          "status": {"type": "string"},
+          "blocking": {"type": "boolean"},
+          "examined": {
+            "type": "object",
+            "additionalProperties": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "report": {"$ref": "gate-report.schema.json"}
+  }
+}

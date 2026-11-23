@@ -1,0 +1,41 @@
+{
+  "status": "findings-present",
+  "as_of": {"date": "2026-11-13", "source": "clock"},
+  "files_examined": 2,
+  "examined": {"files": 2},
+  "records_read_by_any_rule": 2,
+  "rules_executed": [
+    {
+      "rule": "header.required-fields",
+      "population": {"unit": "field", "eligible": 6, "examined": 6, "out_of_scope": 0, "unreadable": 0},
+      "status": "ran"
+    },
+    {"rule": "pointer.resolution", "status": "not-enabled"}
+  ],
+  "rules_selected": null,
+  "scope": {
+    "source": "tracked-sweep",
+    "base": null,
+    "record_types": ["adr"],
+    "include_untracked": false,
+    "untracked_included": 0
+  },
+  "blocking": true,
+  "findings": [
+    {
+      "rule": "header.required-fields",
+      "severity": "error",
+      "file": "docs/adr/ADR-0002-use-queue.md",
+      "line": null,
+      "message": "missing required header field 'Deciders' for record type 'adr'",
+      "suggested_action": {
+        "kind": "edit-field",
+        "op": "set",
+        "target": {"file": "docs/adr/ADR-0002-use-queue.md", "field": "Deciders"}
+      }
+    }
+  ],
+  "next_action": "urzua fix --apply --ids ADR-0002 --actor agent",
+  "next_action_reason": "repairs 1 of 1 findings",
+  "next_action_inputs": []
+}

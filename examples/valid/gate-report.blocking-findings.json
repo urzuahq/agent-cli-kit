@@ -1,0 +1,27 @@
+{
+  "status": "findings-present",
+  "next_action": "mytool fix --apply",
+  "next_action_reason": "repairs 1 of 2 findings",
+  "next_action_inputs": [],
+  "blocking": true,
+  "findings": [
+    {
+      "rule": "header.required-fields",
+      "severity": "error",
+      "message": "missing required header field 'Author'",
+      "file": "docs/rfc/RFC-4-example.md",
+      "line": 1,
+      "column": null,
+      "fix": "mytool fix --apply",
+      "fingerprint": "header.required-fields:docs/rfc/RFC-4-example.md:Author"
+    },
+    {
+      "rule": "filename.title-consistency",
+      "severity": "warning",
+      "message": "filename does not match the title",
+      "file": "docs/rfc/RFC-4-example.md",
+      "line": null
+    }
+  ],
+  "examined": {"files": 5}
+}

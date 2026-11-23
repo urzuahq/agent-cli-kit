@@ -1,0 +1,9 @@
+{
+  "status": "findings-present",
+  "next_action": null,
+  "next_action_reason": null,
+  "next_action_inputs": [],
+  "blocking": false,
+  "findings": [{"rule": "style.indent", "severity": "warn", "message": "bad indent"}],
+  "examined": {"files": 1}
+}
