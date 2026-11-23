@@ -8,7 +8,18 @@
     "status": {"type": "string", "minLength": 1},
     "next_action": {"type": ["string", "null"]},
     "next_action_reason": {"type": ["string", "null"]},
-    "next_action_inputs": {"type": "array", "items": {"type": "string"}},
+    "next_action_inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["placeholder", "flag", "means"],
+        "properties": {
+          "placeholder": {"type": "string", "pattern": "^<.+>$"},
+          "flag": {"type": "string"},
+          "means": {"type": "string"}
+        }
+      }
+    },
     "error": {"type": "string"},
     "notices": {
       "type": "array",

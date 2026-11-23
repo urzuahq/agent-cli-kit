@@ -1,0 +1,7 @@
+{
+  "status": "not-run",
+  "error": "urzua check --rules: 'nope.nope' is not a rule this build ships (`urzua rules` lists them)",
+  "next_action": null,
+  "next_action_reason": null,
+  "next_action_inputs": []
+}
