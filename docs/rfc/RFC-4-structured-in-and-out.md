@@ -54,16 +54,17 @@ A tool has two readers: an agent, and the host that started it. Every channel is
 - **Text for the reader, inside the report.** A `message`, a reason, an `error`. A reader shows it
   or passes it on and never parses it (§4).
 - **The version line.** `--version` prints one fixed line, for install scripts (§3).
+- **The log.** When a caller asks for it, stderr carries one JSON object per line (§2.1).
 
-Anything else is outside the contract and a tool does not rely on it: stderr, `--help`, prompts,
-colour, and behaviour that depends on a terminal.
+Anything else is outside the contract and a tool does not rely on it: free text on stderr,
+`--help`, prompts, colour, and behaviour that depends on a terminal.
 
 ### 2. stderr
 
-A command that prints a report writes nothing to stderr. That holds for a report that blocks, for
-a `not-run` report, and for `describe`. A command that speaks a host's protocol, and a hook script
-a tool installs, are the one case apart: their streams belong to the host, and §5 says what goes
-on them.
+A command that prints a report writes nothing to stderr, unless its caller asked for the log of
+§2.1. That holds for a report that blocks, for a `not-run` report, and for `describe`. A command
+that speaks a host's protocol, and a hook script a tool installs, are apart from this: their
+streams belong to the host, and §5 says what goes on them.
 
 - **A top-level handler.** A tool catches its own failures, an internal error or a panic included,
   and prints a `not-run` report with exit code 2. It also silences the message its runtime would
@@ -90,12 +91,13 @@ reader acts on is only in the log.
 - **Turned on by a declared input.** `describe` carries `log` at the top level: null when the tool
   has no log, or an object that names the one input that turns it on. `{"arg": "--log"}` names a
   flag in the tool's top-level `args`. `{"env": "URZUA_LOG"}` names a variable in `env`, which
-  turns the log on when it is set to `1`.
-- **One JSON object per line.** With the log on, every line the command writes to stderr is one
-  JSON object, and `schemas/log-line.schema.json` describes it. It has three required keys:
-  `time` (RFC 3339, UTC), `level` (`debug`, `info`, `warning` or `error`, the words a finding's
-  severity uses, with `debug` added) and `message` (text, never parsed). A tool may add keys of
-  its own.
+  turns the log on when it is set to `1`. The named flag or variable is one the tool declares
+  there.
+- **One JSON object per line.** With the log on, every line the command writes to stderr is one JSON
+  object, and `schemas/log-line.schema.json` describes it. It has three required keys: `time` (RFC
+  3339 in UTC, written with `Z`, as a receipt's times are), `level` (`debug`, `info`, `warning` or
+  `error`, the words a finding's severity uses, with `debug` added) and `message` (text, never
+  parsed). A tool may add keys of its own.
 - **The report is unchanged.** stdout is the same one JSON object and the exit code is the same,
   with the log on or off.
 
@@ -158,7 +160,13 @@ a report carries the same command as data.
 - **One process.** The command is one program run once: no pipe, no `&&`, no redirection, no
   variable or glob for a shell to expand. RFC-1 already says `next_action` is one command.
 - **The two forms agree.** `next_action` is `next_action_argv` joined by spaces, with each element
-  quoted for a POSIX shell where it needs to be.
+  quoted for a POSIX shell where it needs to be. Splitting the string as a POSIX shell would gives
+  the array back.
+- **A placeholder is quoted in the string.** `<` and `>` mean redirection to a shell, so in
+  `next_action` a placeholder is written `'<record>'`. urzua prints three forms today, single
+  quotes, double quotes and bare, and RFC-1's own example has it bare; from 1.1 it is quoted.
+  A reader of the array never meets the question.
+- **The array is never empty.** When it is not null it has at least the program.
 - **A finding's `fix`** gets the same treatment: `fix_argv`, an array of strings, beside `fix`. A
   `fix` carries no placeholders. It runs as printed.
 
@@ -191,7 +199,8 @@ server. They cannot print the contract's report on stdout, because stdout belong
   a word of its own, and a reader that does not know the word does not call the command.
 - **A hook script a tool installs** is part of the tool. When the tool's binary is missing, the
   script prints a `not-run` report as a literal: `status` `not-run`, an `error`, `error_kind`
-  `environment`, `next_action` and `next_action_reason` null, and an empty `next_action_inputs`.
+  `environment`, `next_action`, `next_action_reason` and `next_action_argv` null, and an empty
+  `next_action_inputs`.
 - **A hook that cannot run its tool blocks.** §5.1 states the rule.
 
 #### 5.1 A hook that cannot run its tool blocks
@@ -200,7 +209,7 @@ A hook exists so that something does not happen unless the tool has looked at it
 could not look, the hook does not let it happen. This is one rule for every tool.
 
 - **When it applies.** The hook could not get a verdict: the tool's binary is missing or cannot
-  start, or the tool answered with a `not-run` report.
+  start, the tool died without printing a report, or the tool answered with a `not-run` report.
 - **Which hooks.** Every hook a tool installs or answers that the host consults before it acts,
   and whose answer can stop the action. A git `pre-commit` or `pre-push` hook is one. So is an
   agent harness hook that runs before an edit or a command.
@@ -210,10 +219,13 @@ could not look, the hook does not let it happen. This is one rule for every tool
   exits 2. For an agent harness hook it is the answer in that host's format that refuses the
   action.
 - **A hook that runs after the fact cannot block.** It prints the `not-run` report in the host's
-  format and that is all it can do. A `post-command` hook is one.
-- **No configuration key turns this off.** A tool's configuration decides what the tool judges and
-  how strictly. It does not decide what happens when the tool could not judge at all. What a tool
-  does when it ran and has no opinion on a change is a different question, and stays the tool's.
+  format and that is all it can do. A git `post-commit` hook is one, and so is an agent harness
+  hook that runs after a command.
+- **Nothing turns this off:** no configuration key, no flag and no environment variable. A tool's
+  flags and configuration are its own interface, as RFC-3 records, and they decide what the tool
+  judges and how strictly. This rule is about something else: what a hook does when the tool
+  could not judge at all. What a tool does when it ran and has no opinion on a change is a
+  different question again, and stays the tool's.
 - **The host's own way round is the host's.** `git commit --no-verify` skips a hook, and this rule
   says nothing about it.
 
@@ -304,8 +316,8 @@ binary. It is given the path of the binary and runs every command in the directo
 in. It does what an agent would do first, and checks the answers.
 
 1. It runs `<tool> describe` and validates the result against `describe.schema.json`. It then
-   checks what the schema cannot: that argument names are unique and that every name in
-   `conflicts_with` and `requires` exists.
+   checks what the schema cannot: that argument names are unique, that every name in
+   `conflicts_with` and `requires` exists, and that the flag or variable `log` names is declared.
 2. For every command that `describe` marks `safe` and that is not `exempt`, it runs the command
    with the arguments in `example`, or with none. A command that needs an argument and has no
    `example` answers with a `not-run` report whose `error_kind` is `usage`, and that is a pass.
@@ -314,16 +326,18 @@ in. It does what an agent would do first, and checks the answers.
    For the gate and run profiles, whose reports carry `blocking`, the exit code is otherwise 1
    exactly when `blocking` is true. For the base profile it is otherwise 0 or 1.
 4. For a tool that prints `contract_version` `"1.1"` it also checks, in every report, what the
-   schema leaves optional: `next_action_argv` is present; every entry of `next_action_inputs` has
-   an `index`, and the element there is the entry's `placeholder`; and every finding with a `fix`
-   has a `fix_argv`.
+   schema leaves optional or cannot state: `next_action_argv` is present, is not empty when it is
+   not null, and is what splitting `next_action` as a POSIX shell gives; every entry of
+   `next_action_inputs` has an `index`, and the element there is the entry's `placeholder`; and
+   every finding with a `fix` has a `fix_argv` that agrees with it in the same way.
 5. If `describe` declares a `log`, it runs one safe command again with the log turned on, and
    checks that every line on stderr validates against `log-line.schema.json` and that stdout and
    the exit code are what they were with the log off.
 6. It runs `<tool> --version` and checks the one line of §3.
 
-The runner does not run hooks. The rule of §5.1 is one each tool tests itself, with its binary
-taken away.
+The runner starts every command with the log's variable unset, so that a log left on in the caller's
+environment does not fail the empty-stderr check. The runner does not run hooks. The rule of §5.1 is
+one each tool tests itself, with its binary taken away.
 
 Each run has a time limit, 60 seconds unless the caller sets another, and a run that exceeds it
 fails. `safe` says a command writes nothing. A tool whose safe command is slow, or needs a network,
@@ -344,8 +358,8 @@ a tool's unit tests, and each tool keeps its vendored schemas and its own tests.
 
 A tool that prints `contract_version` `"1.1"`:
 
-- answers `describe` with exit code 0, and its `describe` declares `args`, `env`, `stdin` and
-  `config` as §6 says;
+- answers `describe` with exit code 0, and its `describe` declares `args`, `env`, `stdin`,
+  `config` and `log` as §6 says, and a `protocol` for each `exempt` command (§5);
 - writes nothing to stderr unless its log was asked for (§2), prints every command as its
   arguments (§4.1), blocks in a hook that cannot run it (§5.1), and follows §3, §4, §5 and §7;
 - passes the runner of §8 in its CI.
@@ -388,7 +402,8 @@ contract that stays put, and one settled 1.1 serves that better than a 1.1 follo
   `example`, `log` and `protocol`, each required as §6 and §5 say when `contract_version` is not
   `"1.0"`.
 - `report.schema.json`: optional `error_kind`; optional `next_action_argv`, null exactly when
-  `next_action` is null; optional `index` on an entry of `next_action_inputs`.
+  `next_action` is null; optional `index` on an entry of `next_action_inputs`. The example
+  `report.next-action.json` quotes its placeholder.
 - `finding.schema.json`: optional `fix_argv`.
 - `log-line.schema.json`, new: one line of a log.
 - `run-report.schema.json`: optional `output_tail` and `output` on a check entry.
@@ -409,13 +424,14 @@ No JSON Schema keyword outside the checked list is needed.
 **urzua**: ships `describe` with its inputs; moves a panic's text to `error` and sets `error_kind`;
 builds a usage error's message without the parser's usage block; removes the menu in `init`; drops
 the banner and closing line from its git hooks and the prose from its harness hook's missing-binary
-case; makes its git hooks exit 2 when the tool cannot run, with the records that decision touches;
-builds every `next_action` from arguments; runs the runner in CI.
+case; makes its git hooks exit 2 when the tool cannot run, with the records that decision touches,
+and its harness hook refuse in the one case it lets through today; builds every `next_action` from
+arguments and quotes its placeholders one way; runs the runner in CI.
 
 **garita**: extends its panic handler to every command; sets `error_kind`; moves captured output
 from `message` to `output_tail` and `output` on the check; adds `args`, `env`, `stdin` and `config`
 to `describe`; ships a hook format that prints a `not-run` report when the binary is missing;
-prints `next_action_argv`; runs the runner in CI.
+prints `next_action_argv`, an `index` on each input and `fix_argv`; runs the runner in CI.
 
 ## Open questions
 
