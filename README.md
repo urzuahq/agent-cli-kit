@@ -23,8 +23,8 @@ for a base report, `gate-report.schema.json` for a gate report, `describe.schema
 `describe`. [`examples/`](examples) shows what passes and what does not.
 
 Vendor the schemas from a release tag. Tests then run against the local copy and need no network.
-No release is tagged yet. Until `v1.0.0` exists, vendor from the release candidate `v1.0.0-rc.1`, a
-pre-release tag that carries the same schemas.
+No release is tagged yet. Until `v1.0.0` exists, vendor from the release candidate `v1.0.0-rc.1`,
+which is a pre-release tag.
 
 ```sh
 (
