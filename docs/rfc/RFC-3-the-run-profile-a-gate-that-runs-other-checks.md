@@ -138,11 +138,17 @@ files through a flag and declares only `base-ref`.
 ### 7. What is not taken
 
 Each of these was in garita's records or output as a shape or a convention. They are not part of
-the contract, and garita's records stop presenting them as one.
+the shared contract, and garita's records stop presenting them as that.
 
-- **A risk object and a per-check verdict** (`risk`, `system`, `verdict`). Not built. When a tool is
-  ready to print them, the keys are proposed here first.
-- **A plugin protocol** (JSON on stdin, a result on stdout). Not built. The same rule applies.
+Not taken does not mean removed. The maintainer refined the ruling on 2026-11-23: a tool may print
+keys beyond its profile, and those are that tool's own extended contract, the tool's to define and
+document. So garita may keep any item below, in its output and in its records, as long as its
+records call it garita's and not the shared contract, and as long as it does not contradict the
+base layer or the run profile. A key becomes shared when a second tool needs it, and is then
+proposed here.
+
+- **A risk object and a per-check verdict** (`risk`, `system`, `verdict`). Not built.
+- **A plugin protocol** (JSON on stdin, a result on stdout). Not built.
 - **A fingerprint algorithm.** The contract says a fingerprint is stable across runs and treats it
   as an opaque string. How a tool computes it is that tool's behaviour.
 - **The layout of a finding's `message`.** A message is text for a reader. A tool may lay it out as
@@ -198,9 +204,8 @@ output keeps every other key it prints today.
   `not-run`, and a shared status vocabulary is a non-goal there. This RFC fixes the words for the
   run profile alone. That is a narrowing of an earlier decision of the maintainer's, and theirs to
   confirm.
-- **Whether a tool's own flags and configuration are outside the contract.** §7 says they are. The
-  ruling says garita defines no input contract. If the maintainer means a runner's configuration
-  file too, it needs a schema here, and that is a larger piece of work.
+- **Whether a tool's own flags and configuration are outside the contract. Answered.** They are
+  the tool's interface, as §7 says (see Revisions).
 - **`trigger` and `scope.kind` as closed lists.** They are garita's words today, and garita has
   confirmed it prints no others. A second runner with another trigger would need a minor release
   to add a value.
@@ -216,6 +221,7 @@ output keeps every other key it prints today.
 | Date | Change |
 |---|---|
 | 2026-11-23 | Accepted by the maintainer. Their words, in answer to a numbered list whose first item was "Accept RFC-3": "I accept 1". Three points stay open and are theirs: whether the run profile fixes its status words (§1), whether a runner's own configuration and flags are outside the contract (§7), and whether the ruling that a tool defines no contract covers tools other than garita. The dates of the ruling and of this record were first written as 2026-11-24 in error and are corrected here. |
+| 2026-11-23 | The maintainer refined the ruling behind this RFC. Their words: "each tool can have extra keys I guess, and that's that tool's specific extended contract", and "the CLI kit is for contract but yeah we would customise it per the one". The layers that answer was given against: the base contract is what every tool prints, and is this repository's; a profile is the base customised for one kind of command, also this repository's, written with the tool; a tool's extra keys are allowed and are that tool's own extended contract, which must not contradict the base or its profile; a tool's flags and configuration file are its interface. This applies to every tool, not to garita alone. §7 now says that an item not taken may stay in garita as garita's own. What this RFC took stays taken. Whether the run profile fixes its status words is still open. |
 
 ## References
 
