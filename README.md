@@ -4,14 +4,17 @@ The agent CLI contract for the `urzuahq` tools: what a command line tool prints 
 an agent, or a control plane such as `garita`, can read it without a per-tool parser. This
 repository holds the contract record, JSON Schemas, example reports, and a CI check that the
 examples validate. The record is
-[RFC-1](docs/rfc/RFC-1-the-agent-cli-contract.md). The contract is version 1.0.
+[RFC-1](docs/rfc/RFC-1-the-agent-cli-contract.md). The released contract is version 1.0. Version
+1.1, which adds the run profile of
+[RFC-3](docs/rfc/RFC-3-the-run-profile-a-gate-that-runs-other-checks.md), is a release candidate.
 
-## The two layers
+## The layers
 
 | Layer | Applies to | Required |
 |---|---|---|
 | Base | Any command that reports a result | `status`, `next_action`, `next_action_reason`, `next_action_inputs`; one JSON object on stdout; exit 0, 1 or 2 |
 | Gate | A command that judges something | The base, plus `blocking`, `findings`, `examined` (not required when `status` is `not-run`) |
+| Run (1.1) | A command that runs other checks | The gate, plus `checks` (not required when `status` is `not-run`) |
 
 A tool also answers `<tool> describe`, and a gate writes a receipt for each run. Both are in the
 RFC.
@@ -19,8 +22,9 @@ RFC.
 ## How a tool conforms
 
 Validate the tool's own output against the schemas, in the tool's own tests: `report.schema.json`
-for a base report, `gate-report.schema.json` for a gate report, `describe.schema.json` for
-`describe`. [`examples/`](examples) shows what passes and what does not.
+for a base report, `gate-report.schema.json` for a gate report, `run-report.schema.json` for a run
+report, `describe.schema.json` for `describe`. [`examples/`](examples) shows what passes and what
+does not.
 
 Vendor the schemas from a release tag. Tests then run against the local copy and need no network.
 The current release is `v1.0.0`.

@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "status": "pass",
+  "blocking": false,
+  "trigger": "commit",
+  "commit": null,
+  "tree": "470afc2bf2c09437403d7e841d0bf964a5a5e385",
+  "scope": {
+    "kind": "everything",
+    "files": [
+      "src/c.ts"
+    ]
+  },
+  "checks": [
+    {
+      "name": "style",
+      "kind": "other",
+      "status": "pass",
+      "duration_ms": 5,
+      "examined": {
+        "files": 1
+      },
+      "rerun": "garita run style"
+    },
+    {
+      "name": "always",
+      "kind": "other",
+      "status": "pass",
+      "duration_ms": 5,
+      "examined": {},
+      "rerun": "garita run always"
+    }
+  ],
+  "findings": [],
+  "examined": {
+    "files": 1
+  },
+  "next_action": null,
+  "next_action_reason": null,
+  "next_action_inputs": [],
+  "receipt": ".garita/receipts/20261123T081534Z-commit-01M83QK1EP1VJAS4ZFMB3NX9J8.json"
+}

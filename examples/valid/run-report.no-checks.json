@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "warn",
+  "blocking": false,
+  "trigger": null,
+  "commit": null,
+  "tree": null,
+  "scope": null,
+  "checks": [],
+  "findings": [
+    {
+      "rule": "doctor/hook-missing",
+      "severity": "warning",
+      "file": null,
+      "line": null,
+      "column": null,
+      "message": "the pre-push hook is not installed"
+    }
+  ],
+  "examined": {
+    "hooks": 2
+  },
+  "next_action": "garita hooks install",
+  "next_action_reason": "1 hook is missing",
+  "next_action_inputs": [],
+  "receipt": null
+}

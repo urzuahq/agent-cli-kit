@@ -1,0 +1,26 @@
+{
+  "name": "garita",
+  "version": "0.2.0",
+  "contract_version": "1.1",
+  "system": 0,
+  "commands": [
+    {
+      "name": "run",
+      "profile": "run",
+      "safe": false,
+      "scopes": [
+        "base-ref"
+      ],
+      "metrics": [
+        "duration_ms"
+      ]
+    },
+    {
+      "name": "doctor",
+      "profile": "run",
+      "safe": true,
+      "scopes": [],
+      "metrics": []
+    }
+  ]
+}
