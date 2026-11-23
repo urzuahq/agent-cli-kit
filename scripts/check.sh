@@ -18,7 +18,7 @@ fi
 base_uri="file://$root/schemas/"
 
 validate() {
-  "${run[@]}" --base-uri "$base_uri" --schemafile "schemas/$1.schema.json" "$2" >/dev/null 2>&1
+  "${run[@]}" --base-uri "$base_uri" --schemafile "schemas/$1.schema.json" "$2" 2>&1
 }
 
 schema_of() {
@@ -36,29 +36,46 @@ if [ ${#valid[@]} -eq 0 ] || [ ${#invalid[@]} -eq 0 ]; then
   exit 1
 fi
 
+failed=0
+
+if ! (cd schemas && sha256sum -- *.schema.json | diff - SHA256SUMS >&2); then
+  echo "FAIL  schemas/SHA256SUMS does not match the schemas; run 'make sums'" >&2
+  failed=1
+fi
+
+# An example only exercises the $refs it reaches, so resolve every one.
+if ! python3 scripts/check_refs.py schemas; then
+  failed=1
+fi
+
 for s in schemas/*.schema.json; do
-  if ! "${run[@]}" --check-metaschema "$s" >/dev/null 2>&1; then
+  if ! out="$("${run[@]}" --check-metaschema "$s" 2>&1)"; then
     echo "FAIL  $s is not a valid schema" >&2
+    echo "$out" >&2
     failed=1
   fi
 done
 
-failed=${failed:-0}
-
 for f in "${valid[@]}"; do
   s="$(schema_of "$f")"
-  if validate "$s" "$f"; then
+  if out="$(validate "$s" "$f")"; then
     echo "ok    $f"
   else
     echo "FAIL  $f should validate against $s" >&2
+    echo "$out" >&2
     failed=1
   fi
 done
 
 for f in "${invalid[@]}"; do
   s="$(schema_of "$f")"
-  if validate "$s" "$f"; then
+  if out="$(validate "$s" "$f")"; then
     echo "FAIL  $f should be rejected by $s" >&2
+    failed=1
+  # A schema that cannot be loaded also fails; only a validation error counts as a rejection.
+  elif [[ "$out" != *"Schema validation errors were encountered."* ]]; then
+    echo "FAIL  $f was not validated against $s" >&2
+    echo "$out" >&2
     failed=1
   else
     echo "ok    $f (rejected)"

@@ -18,11 +18,55 @@ RFC.
 
 ## How a tool conforms
 
-Validate the tool's own output against the files in [`schemas/`](schemas), in the tool's own tests:
-`report.schema.json` for a base report, `gate-report.schema.json` for a gate report,
-`describe.schema.json` for `describe`. The schemas have a `$id` under
-`https://raw.githubusercontent.com/urzuahq/agent-cli-kit/main/schemas/`, and they `$ref` each other
-by relative path. [`examples/`](examples) shows what passes and what does not.
+Validate the tool's own output against the schemas, in the tool's own tests: `report.schema.json`
+for a base report, `gate-report.schema.json` for a gate report, `describe.schema.json` for
+`describe`. [`examples/`](examples) shows what passes and what does not.
+
+Vendor the schemas from a release tag. Tests then run against the local copy and need no network.
+
+```sh
+(
+  set -eu
+  tag=v1.0.0
+  dest=tests/contract
+  tmp="$(mktemp -d)"
+  git clone --quiet --depth 1 --branch "$tag" https://github.com/urzuahq/agent-cli-kit "$tmp"
+  mkdir -p "$dest"
+  rm -f "${dest:?}"/*.schema.json
+  cp "$tmp"/schemas/*.schema.json "$tmp"/schemas/SHA256SUMS "$dest"/
+  printf '%s %s\n' "$tag" "$(git -C "$tmp" rev-parse HEAD)" > "$dest/VERSION"
+  rm -rf "$tmp"
+)
+```
+
+The subshell stops at the first failure, so a tag that does not exist leaves the old copy in place.
+
+The schemas `$ref` each other by relative path, so point the validator's base URI at the vendored
+directory. Their `$id` is a name, not where a test should fetch from.
+
+Check the copy in two places. Locally and offline, it must match its own checksums:
+
+```sh
+(cd tests/contract && sha256sum -- *.schema.json | diff - SHA256SUMS)
+```
+
+In CI, it must also match the release it claims to be:
+
+```sh
+cd tests/contract
+read -r tag commit < VERSION
+curl -fsSL "https://raw.githubusercontent.com/urzuahq/agent-cli-kit/$commit/schemas/SHA256SUMS" \
+  | diff - SHA256SUMS
+```
+
+To move to a newer release, run the vendoring commands again with the new tag and commit the result.
+
+## Releases
+
+A release is a tag `v<major>.<minor>.<patch>`; `<major>.<minor>` is the `contract_version` a tool
+prints. A patch changes nothing a schema accepts, a minor adds optional keys or list values, and a
+major may break. The
+receipt schema is a draft and may change in any release. The rules are in RFC-1 §4.
 
 ## Run the check locally
 
@@ -30,9 +74,10 @@ by relative path. [`examples/`](examples) shows what passes and what does not.
 make check
 ```
 
-This validates every file in `examples/valid/` and confirms that every file in `examples/invalid/`
-is rejected. The schema is chosen from the filename: `<schema>.<case>.json`. It needs `uvx` or
-`pipx`, and runs a pinned `check-jsonschema`.
+This validates every file in `examples/valid/`, confirms that every file in `examples/invalid/`
+is rejected, and checks `schemas/SHA256SUMS`. After changing a schema, run `make sums`. The schema
+is chosen from the filename: `<schema>.<case>.json`. It needs `python3` and either `uvx` or `pipx`,
+and runs a pinned `check-jsonschema`.
 
 ## Deferred
 
