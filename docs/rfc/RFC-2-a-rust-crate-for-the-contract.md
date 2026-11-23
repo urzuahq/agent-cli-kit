@@ -146,7 +146,8 @@ The crate has its own version and its own tags, `crate-v<version>`. Schema relea
 The crate is tested against the schemas. It is not generated from them.
 
 - Every value the crate's own types can serialize is validated against the embedded schema: the
-  `not-run` report, `describe`, the finding, the receipt, and each leaf type inside a minimal report.
+  `not-run` report, `describe`, the finding, the receipt, and each leaf type inside a minimal
+  report.
 - Every file in `examples/valid/` for a schema whose type the crate owns (`describe`, `finding`,
   `receipt`) must deserialize into that type and serialize back to the same JSON.
 - Every file in `examples/invalid/` must be rejected by `assert_conforms`.
