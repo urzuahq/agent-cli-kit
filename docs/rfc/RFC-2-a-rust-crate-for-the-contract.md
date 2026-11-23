@@ -42,15 +42,19 @@ pinned by the tool's lockfile, works offline, and needs no drift check.
 
 **Leaf types**, identical in every tool, each with `serde` support:
 
-- `ActionInput { placeholder, flag, means }` and `NextAction { command, reason, inputs }`.
-  `NextAction` serializes to exactly the three keys `next_action`, `next_action_reason` and
-  `next_action_inputs`, byte for byte what urzua prints today. It is the one type meant to be
-  flattened into a tool's report, which urzua's ADR-46 allows for this wrapper alone
+- `ActionInput { placeholder, flag, means }` and `NextAction { command, reason, inputs }`, plain
+  data a tool builds
+- `NextActionKeys`, built from an `Option<NextAction>`. It always serializes all three keys,
+  `next_action`, `next_action_reason` and `next_action_inputs`, byte for byte what urzua prints
+  today: two nulls and an empty array when there is no action. The crate flattens nothing itself.
+  A tool writes the three keys as its own fields from these values, or holds `NextActionKeys` in
+  the one wrapper its own design allows, as urzua's ADR-46 amendment does
 - `Severity`: `error`, `warning`, `info`, ordered so that `error` is greater than `warning` and
   `warning` greater than `info`
 - `Examined`: a map from a unit name to a count
 - `CheckKind`: `lint`, `format`, `types`, `test`, `build`, `records`, `other`
 - `Profile`: `base`, `gate`, `exempt`
+- `System`: 0, 1 or 2, as `describe` prints it
 - `ToolInfo { name, version }`
 - `ObjectId`: a git object hash, 40 or 64 lowercase hex characters, checked when built and
   serialized as a plain string
@@ -75,19 +79,21 @@ will.
 **The receipt**, behind a feature named `unstable-receipt`: `Receipt<R>`, `ReceiptCheck` and
 `ResultWord`. The receipt schema is a draft, and the feature name says the types can change in any
 release until it is not. `Receipt` is generic over the report it embeds, a check's `status` is a
-string and its `scope` is a JSON value, so that no tool's own types enter the crate.
+string and its `scope` is a JSON object with a `kind`, so that no tool's own types enter the crate.
 
 **The schemas as text.** The crate embeds the five schema files and exposes each as a `&'static str`
 constant, with the version they came from. This needs no dependency. A tool's lockfile then pins the
-schemas, and a script can still be pointed at them.
+schemas, and a tool's test can write them to a directory for a validator outside Cargo.
 
 **Two test helpers.**
 
-- `assert_contract(&value, exit_code)` checks the contract's own rules on a serialized report, with
-  no validator: `blocking` is true exactly when the exit code is 1; `next_action_reason` is null
-  exactly when `next_action` is; a `not-run` report has exit code 2 and is not blocking; `findings`
-  and `examined` are present unless the report is `not-run`. Several of these tie the report to the
-  exit code, which no schema can express.
+- `assert_contract(profile, &value, exit_code)` checks the contract's own rules on a serialized
+  report, with no validator. For either profile: `status` and the three next-action keys are
+  present; `next_action_reason` is null exactly when `next_action` is; `error` appears only on a
+  `not-run` report; the exit code is 2 exactly when `status` is `not-run`. For the gate profile it
+  adds: `blocking`, `findings` and `examined` are present unless the report is `not-run`; `blocking`
+  is true exactly when the exit code is 1; a `not-run` report is not blocking. The rules that tie a
+  report to its exit code are ones no schema can express. Each rule is a sentence of RFC-1 §1 or §2.
 - `assert_conforms(Schema::GateReport, &value)`, behind a feature named `validate`, validates a
   value against the embedded schemas with a JSON Schema 2020-12 validator and prints its errors. The
   feature is off by default, and a tool turns it on only as a dev-dependency. It is not in the first
@@ -121,17 +127,18 @@ licence is MIT, the repository's. Both tools run a check for unused dependencies
 declares nothing it does not use.
 
 The `validate` feature may add a validator only if every crate it pulls in is under a licence both
-tools allow (MIT, Apache-2.0 or Unicode-3.0) and builds on Rust 1.87. Both tools check licences and
-sources for dev-dependencies too.
+tools allow (MIT, Apache-2.0, Apache-2.0 WITH LLVM-exception or Unicode-3.0) and builds on Rust
+1.87. Both tools check licences and sources for dev-dependencies too.
 
-urzua's conformance test uses the `boon` crate, version 0.6. Its dependency tree was resolved on
-2026-11-23 and does not meet those conditions as it stands. One crate in it, `borrow-or-share`, is
+The validator considered was the `boon` crate, version 0.6, which the urzua thread named. Its
+dependency tree was resolved on 2026-11-23 and does not meet those conditions as it stands. One
+crate in it, `borrow-or-share`, is
 under MIT-0 alone, which neither tool's licence list allows. The newest `icu` crates it resolves to
 need Rust 1.88. A tool can work around both in its own repository, with a licence exception and a
 pinned lockfile, and that is each tool's decision. The crate cannot make that decision for them, so
 the first release has no `validate` feature. It ships the schema text and `assert_contract`, and
-each tool validates against the embedded schemas with the validator it already uses. The feature is
-added when a validator's tree passes both tools' checks unchanged.
+each tool goes on validating its output in its own way. The feature is added when a validator's
+tree passes both tools' checks unchanged.
 
 ### 4. How it is published
 
@@ -152,8 +159,10 @@ The crate has its own version and its own tags, `crate-v<version>`. Schema relea
   breaking change for one release.
 - Every crate release states the contract version it implements, in `CONTRACT_VERSION`, in its
   README, and in a table in this repository's README.
-- A schema release never waits for the crate. The schemas are tagged first. The crate follows with
-  a release that embeds the new files.
+- A schema release never waits for a crate release. The schemas are tagged first. The crate follows
+  with a release that embeds the new files. A pull request that changes a schema does keep the
+  crate's code and tests passing (§6), which is a change in the same pull request, not a
+  publication.
 - A crate release may only embed schema files that are identical to a tagged schema release or
   release candidate. CI checks this against `schemas/SHA256SUMS` at that tag.
 
@@ -161,17 +170,20 @@ The crate has its own version and its own tags, `crate-v<version>`. Schema relea
 
 The crate is tested against the schemas. It is not generated from them.
 
-The crate's own tests use a JSON Schema validator as a dev-dependency of this repository. A
-dev-dependency is not part of what a consuming tool builds or checks, so the limits of §3 do not
-apply to it.
+The crate's own tests use a JSON Schema validator as a dev-dependency of this repository, with the
+versions pinned in a committed lockfile. A dev-dependency is not part of what a consuming tool
+builds or checks, so the limits of §3 do not apply to it. The minimum Rust version is checked by
+building the library alone, without its tests.
 
 - Every value the crate's own types can serialize is validated against the embedded schema: the
   `not-run` report, `describe`, the finding, the receipt, and each leaf type inside a minimal
   report.
-- Every file in `examples/valid/` for a schema whose type the crate owns (`describe`, `finding`,
-  `receipt`) must deserialize into that type and serialize back to the same JSON.
-- `assert_contract` must pass on every valid report example and fail on a report built to break
-  each of its rules.
+- Every `describe` and `receipt` file in `examples/valid/` must deserialize into the crate's type
+  and serialize back to the same JSON.
+- Every finding inside a valid gate-report example must deserialize into `Finding`. A tool's extra
+  keys are ignored there, so this checks the contract's keys and not a round trip.
+- `assert_contract` must pass on every valid report example, base and gate, with the exit code its
+  `status` and `blocking` imply, and must fail on a report built to break each of its rules.
 - `make check` runs these with the schema checks, so a pull request that changes a schema and not
   the crate fails.
 
