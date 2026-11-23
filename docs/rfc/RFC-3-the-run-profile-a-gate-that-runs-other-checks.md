@@ -1,7 +1,7 @@
 ---
 Stable-Id: 01M85BC4GP8W2DRH6E7SFN6BD2
 Status: Draft
-Date: 2026-11-23
+Date: 2026-11-24
 Author: beauwilliams
 ---
 # 3 — The run profile: a gate that runs other checks
