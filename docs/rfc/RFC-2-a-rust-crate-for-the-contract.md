@@ -164,6 +164,8 @@ The feature is added when a validator's tree passes both tools' checks unchanged
 
 ### 4. How it is published
 
+Publishing is declined for now, so this section describes a path that is closed (see Revisions).
+
 On crates.io, as `agent-cli-kit`. The name is free there today. A registry release is the only form
 urzua or garita can depend on: both deny git sources and allow only crates.io. A release is
 published from CI on a tag, never from a developer's machine.
