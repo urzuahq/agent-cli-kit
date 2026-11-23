@@ -76,8 +76,8 @@ make check
 
 This validates every file in `examples/valid/`, confirms that every file in `examples/invalid/`
 is rejected, and checks `schemas/SHA256SUMS`. After changing a schema, run `make sums`. The schema
-is chosen from the filename: `<schema>.<case>.json`. It needs `uvx` or `pipx`, and runs a pinned
-`check-jsonschema`.
+is chosen from the filename: `<schema>.<case>.json`. It needs `python3` and either `uvx` or `pipx`,
+and runs a pinned `check-jsonschema`.
 
 ## Deferred
 
