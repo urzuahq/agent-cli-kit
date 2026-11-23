@@ -48,6 +48,10 @@ if ! python3 scripts/check_refs.py schemas; then
   failed=1
 fi
 
+if ! python3 scripts/check_keywords.py schemas; then
+  failed=1
+fi
+
 for s in schemas/*.schema.json; do
   if ! out="$("${run[@]}" --check-metaschema "$s" 2>&1)"; then
     echo "FAIL  $s is not a valid schema" >&2

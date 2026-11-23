@@ -70,6 +70,11 @@ prints. A patch changes nothing a schema accepts, a minor adds optional keys or 
 major may break. The
 receipt schema is a draft and may change in any release. The rules are in RFC-1 §4.
 
+A consumer may read the schemas with its own code and stop on a JSON Schema keyword it does not
+know. The schemas use a fixed list of keywords, held in `scripts/check_keywords.py`, and the check
+fails on any other. A change that adds a keyword to that list is announced to the consuming tools
+before the release that carries it, and ships in a release candidate first.
+
 ## Run the check locally
 
 ```sh
