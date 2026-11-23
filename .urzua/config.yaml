@@ -8,6 +8,9 @@ record_types:
     statuses:
       values: [Draft, Discussion, Accepted, Rejected, Superseded]
       initial: [Draft]
+      progress: [Discussion]
+      success: [Accepted]
+      failure: [Rejected, Superseded]
       transitions:
         Draft: [Discussion, Accepted, Rejected]
         Discussion: [Draft, Accepted, Rejected]
