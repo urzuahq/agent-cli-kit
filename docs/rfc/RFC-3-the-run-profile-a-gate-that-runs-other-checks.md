@@ -31,8 +31,7 @@ make urzua's conforming report stop conforming. A separate profile leaves every 
 report as it is.
 
 **The receipt already holds the same list.** Each entry of the receipt's `checks` has a `name`,
-`kind`, `status`, `duration_ms` and `examined`. The run report's entries are the same facts, less
-what only a receipt needs.
+`kind`, `status`, `duration_ms` and `examined`. The run report's entries hold the same five facts.
 
 **Inputs are part of the contract too.** `describe` lets a command declare the scopes it accepts,
 `paths` and `base-ref`, and says nothing about how they are passed. A runner that calls a native
@@ -93,8 +92,8 @@ of zero must not be read as a pass. How a runner is configured to suppress is it
 
 ### 4. `check` on a finding
 
-`finding.schema.json` gains one optional key, `check`: the `name` of the entry in `checks` that
-produced the finding. Any profile may use it. In the run profile, a `check` names an entry that
+`finding.schema.json` gains one optional key, `check`, a string: the `name` of the entry in `checks`
+that produced the finding. Any profile may use it. In the run profile, a `check` names an entry that
 exists in the same report, and a finding about the run itself, which no check produced, has no
 `check`. A schema cannot state the first rule, so it is one a tool's own tests check.
 
@@ -112,7 +111,9 @@ prefix is required, because two tools may use the same id for different rules.
 
 A finding the runner raises itself, about a tool's run or about the run as a whole, has a rule id
 of the runner's own choosing, with a prefix or without. Those ids are the runner's content, as
-urzua's rules are urzua's. The contract fixes the form above and no list.
+urzua's rules are urzua's. The contract fixes the form above and no list. A reader cannot tell from
+an id alone which kind of finding it is, and does not need to: the prefix exists so that ids from
+different tools never collide.
 
 ### 6. How a command accepts its scopes
 
@@ -142,16 +143,26 @@ the contract, and garita's records stop presenting them as one.
 - **What a tool's `next_action` holds and how its reason is worded.** RFC-1 says it is one command
   to run next. Which command is the tool's decision.
 - **A list of `examined` unit names.** The map is open. RFC-1's names are examples.
-- **A tool's own flags and configuration file, and how a runner invokes tools it wraps.** These are
-  each tool's interface and behaviour. `describe` is where a tool states what a caller may rely on.
+- **A tool's own flags and configuration file, and how a runner invokes a tool through its own
+  configuration.** A runner that wraps a tool with a configured command line, placeholders and
+  added flags is using its own interface. §6 covers the other case only: a command called from
+  what its `describe` declares.
 
 ### 8. The receipt
 
-The receipt stays a draft. Its field list lives in RFC-1 §5 and `receipt.schema.json`, and no other
-record restates it. When this RFC's schema lands, the receipt's `report` refers to the run report,
-and a receipt check's `scope` and `status` take the lists of §1 and §2.
+The receipt stays a draft, and this RFC does not change its schema. Its field list lives in RFC-1
+§5 and `receipt.schema.json`, and no other record restates it. Its `report` stays a gate report,
+which a run report also is, so a receipt written by a gate that runs no checks stays valid. A
+runner's receipt embeds a run report, and each of its checks takes its `scope` from §2.
 
-### 9. Version and release
+### 9. What changes in RFC-1
+
+When this RFC is accepted, RFC-1 gains a revision row pointing here, and its text is brought into
+line in three places. §3 lists `run` among the profiles and says `contract_version` is `"1.1"` from
+this release. §3's sentence that a command may state its `kind` is unchanged. §6 lists
+`run-report.schema.json` among the schemas. Nothing in RFC-1's base layer or gate profile changes.
+
+### 10. Version and release
 
 This is contract version 1.1: a new profile value, a new schema, and one optional key on the
 finding. No output that conformed to 1.0 stops conforming. Every JSON Schema keyword the new schema
@@ -160,7 +171,7 @@ uses is already in the list of `scripts/check_keywords.py`.
 It ships as `v1.1.0-rc.1` first. garita validates its report against the run schema, and `v1.1.0`
 is tagged when that passes, as `v1.0.0` waited for urzua.
 
-### 10. What each tool changes
+### 11. What each tool changes
 
 **garita** adds `describe`, which it does not have yet, and declares each command that prints its
 report type as profile `run`, including the two that select no checks. It validates its reports
@@ -192,4 +203,4 @@ output keeps every other key it prints today.
 ## References
 
 - RFC-1, the agent CLI contract
-- garita RFC-1, RFC-2 and RFC-3
+- garita's own RFC-1, RFC-2 and RFC-3
