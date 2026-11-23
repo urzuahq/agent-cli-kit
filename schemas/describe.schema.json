@@ -17,6 +17,7 @@
         "properties": {
           "name": {"type": "string", "minLength": 1},
           "profile": {"enum": ["base", "gate", "exempt"]},
+          "kind": {"enum": ["lint", "format", "types", "test", "build", "records", "other"]},
           "safe": {"type": "boolean"},
           "scopes": {"type": "array", "items": {"type": "string"}},
           "metrics": {"type": "array", "items": {"type": "string"}}

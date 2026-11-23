@@ -101,7 +101,17 @@ Whether a finding blocks is the tool's decision, reported only through `blocking
 - `system`: 0, 1 or 2. 0 is deterministic compute, 1 a decision model, 2 LLM inference
 - `commands`: an array of `{name, profile, safe, scopes, metrics}`, where `profile` is `base`,
   `gate` or `exempt`; `safe` is true when the command writes nothing; `scopes` lists what it accepts
-  (`paths`, `base-ref`); and `metrics` lists the numbers it reports (`duration_ms`, `files`)
+  (`paths`, `base-ref`); and `metrics` lists the numbers it reports (`duration_ms`, `files`). A
+  command may also state its `kind`: `lint`, `format`, `types`, `test`, `build`, `records` or
+  `other`, the same words a receipt uses for a check
+
+`describe` is not itself a base report. On success it prints the object above, with no `status` and
+no `next_action` keys, and exits 0. When it cannot run it behaves like any other command: it prints
+a `not-run` base report and exits 2. A reader tells the two apart by the exit code.
+
+`--help` and `--version` are exempt from the base layer. They print text for a person.
+
+This schema owns the `describe` field list. A tool that needs another field proposes it here.
 
 `safe` is what lets a future checker run a command without risk: it runs only commands marked safe.
 
@@ -110,6 +120,22 @@ Whether a finding blocks is the tool's decision, reported only through `blocking
 A reader compares the major of the tool's `contract_version` with its own. A different major means
 the reader reports the tool as `not-run` and does not guess. A minor release only adds optional
 keys, so a reader written for 1.0 reads 1.3 output unchanged.
+
+**Releases.** A release is a git tag `v<major>.<minor>.<patch>` on `main`. `<major>.<minor>` is the
+`contract_version` a tool prints. The three numbers move as follows.
+
+- **Patch**: the set of conforming outputs does not change. A description, an example, a corrected
+  pattern that only rejects output no tool could have printed.
+- **Minor**: new optional keys, or a new value in a list a reader must already treat as open.
+- **Major**: anything that makes a conforming output stop conforming, or removes or renames a key.
+
+A schema whose title says `draft` is outside this promise: it may change in any release until the
+word is removed. In 1.0 that is the receipt.
+
+**What a change requires.** Every pull request that changes what a schema accepts adds at least one
+valid example that the new rule admits and one invalid example that it rejects, named for the rule.
+An invalid example must fail for that rule alone. `schemas/SHA256SUMS` is regenerated in the same
+pull request, and CI fails when it is stale.
 
 ### 5. The receipt
 
@@ -148,6 +174,21 @@ for it. CI in this repository checks that the corpus behaves as stated.
 Each tool validates its own output against the schemas in its own tests. The contract does not
 execute other people's binaries: commands can write, and a runner that executes arbitrary commands
 is unsafe.
+
+**How a tool gets the schemas.** A tool vendors them: it commits a copy of `schemas/` from one
+release tag into its own repository, together with `SHA256SUMS` and a `VERSION` file holding the tag
+and the commit it points at. Its tests validate against that local copy, so they need no network and
+pass in a locked, offline build. The schemas `$ref` each other by relative path, so the validator
+must resolve references against the vendored directory, not against the `$id`.
+
+Two checks keep the copy honest. `sha256sum --check SHA256SUMS` in the vendored directory needs no
+network and catches a local edit. In CI the tool also fetches `schemas/SHA256SUMS` at the tag named
+in `VERSION` and compares it with the vendored one, which catches a copy that does not match its
+stated release. Moving to a newer release is a deliberate commit that replaces the directory.
+
+Fetching the schemas at test time was rejected because it breaks offline builds, and a git
+dependency was rejected because a tool's dependency policy may deny it. The README gives the
+commands.
 
 ### 7. What each tool changes
 

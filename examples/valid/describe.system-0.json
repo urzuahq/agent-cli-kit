@@ -7,16 +7,27 @@
     {
       "name": "check",
       "profile": "gate",
+      "kind": "records",
       "safe": true,
-      "scopes": ["paths", "base-ref"],
-      "metrics": ["duration_ms", "files"]
+      "scopes": [
+        "paths",
+        "base-ref"
+      ],
+      "metrics": [
+        "duration_ms",
+        "files"
+      ]
     },
     {
       "name": "fix",
       "profile": "gate",
       "safe": false,
-      "scopes": ["paths"],
-      "metrics": ["duration_ms"]
+      "scopes": [
+        "paths"
+      ],
+      "metrics": [
+        "duration_ms"
+      ]
     },
     {
       "name": "mcp",

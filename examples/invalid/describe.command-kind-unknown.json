@@ -1,0 +1,16 @@
+{
+  "name": "mytool",
+  "version": "0.1.0",
+  "contract_version": "1.0",
+  "system": 0,
+  "commands": [
+    {
+      "name": "check",
+      "profile": "gate",
+      "kind": "tests",
+      "safe": true,
+      "scopes": [],
+      "metrics": []
+    }
+  ]
+}
