@@ -30,6 +30,7 @@ dest=tests/contract
 tmp="$(mktemp -d)"
 git clone --quiet --depth 1 --branch "$tag" https://github.com/urzuahq/agent-cli-kit "$tmp"
 mkdir -p "$dest"
+rm -f "${dest:?}"/*.schema.json
 cp "$tmp"/schemas/*.schema.json "$tmp"/schemas/SHA256SUMS "$dest"/
 printf '%s %s\n' "$tag" "$(git -C "$tmp" rev-parse HEAD)" > "$dest/VERSION"
 rm -rf "$tmp"
@@ -41,7 +42,7 @@ directory. Their `$id` is a name, not where a test should fetch from.
 Check the copy in two places. Locally and offline, it must match its own checksums:
 
 ```sh
-(cd tests/contract && sha256sum --check --quiet SHA256SUMS)
+(cd tests/contract && sha256sum -- *.schema.json | diff - SHA256SUMS)
 ```
 
 In CI, it must also match the release it claims to be:
@@ -49,7 +50,7 @@ In CI, it must also match the release it claims to be:
 ```sh
 cd tests/contract
 read -r tag commit < VERSION
-curl -fsSL "https://raw.githubusercontent.com/urzuahq/agent-cli-kit/$tag/schemas/SHA256SUMS" \
+curl -fsSL "https://raw.githubusercontent.com/urzuahq/agent-cli-kit/$commit/schemas/SHA256SUMS" \
   | diff - SHA256SUMS
 ```
 
@@ -58,7 +59,8 @@ To move to a newer release, run the vendoring commands again with the new tag an
 ## Releases
 
 A release is a tag `v<major>.<minor>.<patch>`; `<major>.<minor>` is the `contract_version` a tool
-prints. A patch changes no conforming output, a minor adds optional keys, and a major may break. The
+prints. A patch changes nothing a schema accepts, a minor adds optional keys or list values, and a
+major may break. The
 receipt schema is a draft and may change in any release. The rules are in RFC-1 §4.
 
 ## Run the check locally
@@ -68,8 +70,8 @@ make check
 ```
 
 This validates every file in `examples/valid/`, confirms that every file in `examples/invalid/`
-is rejected, and checks `schemas/SHA256SUMS`. After changing a schema, run `make sums`. The schema is
-chosen from the filename: `<schema>.<case>.json`. It needs `uvx` or `pipx`, and runs a pinned
+is rejected, and checks `schemas/SHA256SUMS`. After changing a schema, run `make sums`. The schema
+is chosen from the filename: `<schema>.<case>.json`. It needs `uvx` or `pipx`, and runs a pinned
 `check-jsonschema`.
 
 ## Deferred

@@ -111,7 +111,8 @@ a `not-run` base report and exits 2. A reader tells the two apart by the exit co
 
 `--help` and `--version` are exempt from the base layer. They print text for a person.
 
-This schema owns the `describe` field list. A tool that needs another field proposes it here.
+This record owns the `describe` field list. A tool may print other keys, as in any report, and one
+that wants a key every reader can rely on proposes it here.
 
 `safe` is what lets a future checker run a command without risk: it runs only commands marked safe.
 
@@ -124,10 +125,19 @@ keys, so a reader written for 1.0 reads 1.3 output unchanged.
 **Releases.** A release is a git tag `v<major>.<minor>.<patch>` on `main`. `<major>.<minor>` is the
 `contract_version` a tool prints. The three numbers move as follows.
 
-- **Patch**: the set of conforming outputs does not change. A description, an example, a corrected
-  pattern that only rejects output no tool could have printed.
-- **Minor**: new optional keys, or a new value in a list a reader must already treat as open.
-- **Major**: anything that makes a conforming output stop conforming, or removes or renames a key.
+- **Patch**: nothing a schema accepts or rejects changes. A description, an example, the record's
+  wording.
+- **Minor**: a new optional key, or a new value in one of the contract's lists (`kind`, `profile`,
+  `severity`). Output that conformed before, and used no key the contract had not yet defined,
+  still conforms. A reader meets a list value it does not know by treating the report as it would
+  an unknown key: it keeps going and does not guess a meaning.
+- **Major**: output that conformed, using only keys the contract defined, stops conforming. A key
+  is removed, renamed, made required or given a narrower type.
+
+Unknown keys are allowed, so one case sits between minor and major: a tool's own key whose name a
+later minor defines with a different shape. That tool's output stops conforming although the
+release is a minor. The cost is accepted and kept small: a new key is named in a pull request
+against this record before it ships, and a tool that already prints that name objects there.
 
 A schema whose title says `draft` is outside this promise: it may change in any release until the
 word is removed. In 1.0 that is the receipt.
@@ -181,10 +191,12 @@ and the commit it points at. Its tests validate against that local copy, so they
 pass in a locked, offline build. The schemas `$ref` each other by relative path, so the validator
 must resolve references against the vendored directory, not against the `$id`.
 
-Two checks keep the copy honest. `sha256sum --check SHA256SUMS` in the vendored directory needs no
-network and catches a local edit. In CI the tool also fetches `schemas/SHA256SUMS` at the tag named
-in `VERSION` and compares it with the vendored one, which catches a copy that does not match its
-stated release. Moving to a newer release is a deliberate commit that replaces the directory.
+Two checks keep the copy honest. Hashing the vendored schemas and comparing the result with the
+vendored `SHA256SUMS` needs no network and catches a local edit or a stray schema. In CI the tool
+also fetches `schemas/SHA256SUMS` at the commit named in `VERSION` and compares it with the vendored
+one, which catches a copy that does not match its stated release. The commit is used, not the tag,
+because a tag can be moved. Moving to a newer release is a deliberate commit that replaces the
+vendored schemas.
 
 Fetching the schemas at test time was rejected because it breaks offline builds, and a git
 dependency was rejected because a tool's dependency policy may deny it. The README gives the

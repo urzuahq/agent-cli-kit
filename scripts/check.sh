@@ -38,14 +38,19 @@ fi
 
 failed=0
 
-if ! (cd schemas && sha256sum --check --quiet --strict SHA256SUMS); then
+if ! (cd schemas && sha256sum -- *.schema.json | diff - SHA256SUMS >&2); then
   echo "FAIL  schemas/SHA256SUMS does not match the schemas; run 'make sums'" >&2
   failed=1
 fi
-if [ "$(wc -l < schemas/SHA256SUMS)" -ne "$(find schemas -name '*.schema.json' | wc -l)" ]; then
-  echo "FAIL  schemas/SHA256SUMS does not list every schema; run 'make sums'" >&2
-  failed=1
-fi
+
+# An example only exercises the $refs it reaches, so check every target exists.
+while IFS=: read -r file ref; do
+  target="${ref%%#*}"
+  if [ -n "$target" ] && [ ! -f "schemas/$target" ]; then
+    echo "FAIL  $file refers to $target, which is not in schemas/" >&2
+    failed=1
+  fi
+done < <(grep -o '"\$ref": *"[^"]*"' schemas/*.schema.json | sed -E 's/"\$ref": *"([^"]*)"$/\1/')
 
 for s in schemas/*.schema.json; do
   if ! out="$("${run[@]}" --check-metaschema "$s" 2>&1)"; then
