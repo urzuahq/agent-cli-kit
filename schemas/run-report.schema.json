@@ -35,7 +35,7 @@
             }
           }
         },
-        "trigger": {"enum": ["commit", "push", "ci", "merge", null]},
+        "trigger": {"type": ["string", "null"], "pattern": "^(commit|push|ci|merge)$"},
         "commit": {"$ref": "#/$defs/hash_or_null"},
         "tree": {"$ref": "#/$defs/hash_or_null"},
         "scope": {
