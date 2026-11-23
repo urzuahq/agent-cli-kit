@@ -12,7 +12,7 @@ examples validate. The record is
 
 | Layer | Applies to | Required |
 |---|---|---|
-| Base | Any command that reports a result | `status`, `next_action`, `next_action_reason`, `next_action_inputs`; one JSON object on stdout; exit 0, 1 or 2 |
+| Base | Any command that reports a result | `status`, `next_action`, `next_action_reason`, `next_action_inputs`; one JSON object on stdout and nothing on stderr; exit 0, 1 or 2 |
 | Gate | A command that judges something | The base, plus `blocking`, `findings`, `examined` (not required when `status` is `not-run`) |
 | Run (1.1) | A command that runs other checks | The gate, plus `checks` (not required when `status` is `not-run`) |
 

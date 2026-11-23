@@ -48,10 +48,13 @@ existing consumer keeps working.
 
 Every command that reports a result obeys these rules.
 
-- **Output.** stdout is exactly one JSON object, including when the command fails. Everything else
-  goes to stderr. No flag is needed to get JSON. A command that streams or serves is exempt: a
-  long-running server, a line-per-event stream, a command whose product is a file or a page. Such a
-  command is declared `exempt` in `describe`.
+- **Output.** stdout is exactly one JSON object, including when the command fails. No flag is
+  needed to get JSON. A command that streams or serves is exempt: a long-running server, a
+  line-per-event stream, a command whose product is a file or a page. Such a command is declared
+  `exempt` in `describe`.
+- **stderr.** A command that prints its report writes nothing to stderr. That holds for a report
+  that blocks and for a `not-run` report. The tools' readers are agents, and there is no second
+  report for a person: no summary, no progress, no restatement of the result. The rules are below.
 - **Exit codes.** `0`: ran, and nothing blocks. `1`: ran, and something blocks. `2`: could not run.
 - **Required keys.**
 
@@ -71,6 +74,26 @@ Every command that reports a result obeys these rules.
   tool's own report schema. `tool`: `{name, version}`.
 - **Unknown keys** are allowed and readers ignore them. This is what lets a tool keep its own fields
   beside the contract's.
+
+**What stderr is for.** One thing: a failure so early or so complete that the tool cannot print
+its report at all, such as a crash or a failure to write to stdout. stdout is then empty or is not
+one JSON object, and the exit code is not 0. A reader treats that as `not-run`, may keep the stderr
+text as a diagnostic, and never parses it.
+
+- **Nothing a reader acts on exists only on stderr.** If it matters, it is in the JSON. A warning
+  about the tool's own environment, such as a deprecated flag or a missing hook, is an entry of
+  `notices`. urzua already does this: its deprecated `audit` alias says so in `notices` and writes
+  nothing to stderr.
+- **A tool that runs other tools captures their output.** It does not pass a child's stdout or
+  stderr through to its own. What the child printed belongs in the findings, or in the file a
+  receipt's `output` names.
+- **Diagnostic logging is off unless asked for.** A tool may write a log to stderr when a caller
+  turns it on with a flag or an environment variable that the tool documents. It is for whoever is
+  debugging the tool. A reader of the report never needs it, and it is never on by default.
+- **What is outside this rule.** `--help` and `--version`, which print text for a person on stdout.
+  A command declared `exempt`, whose stderr is its log. An install script, which is not a command
+  of the tool: it is a shell script a person or a CI job runs once to put the tool on a machine, and
+  it may print what it likes.
 
 `schemas/report.schema.json` encodes the two conditional rules: `next_action_reason` is null exactly
 when `next_action` is null, and `error` present requires `status` to be `not-run`.
@@ -157,6 +180,13 @@ valid example that the new rule admits and one invalid example that it rejects, 
 An invalid example must fail for that rule alone. `schemas/SHA256SUMS` is regenerated in the same
 pull request, and CI fails when it is stale.
 
+**A new JSON Schema keyword.** A tool may read the schemas with its own code, not a general
+validator, and stop on a keyword it does not know. urzua's conformance test does. The schemas
+therefore use a fixed list of keywords, held in `scripts/check_keywords.py`, and CI fails on any
+other. A change that adds a keyword to that list is announced to the consuming tools before the
+release that carries it, and that release is preceded by a release candidate. The same care applies
+to a construct the schemas have not used before, such as a `null` inside an `enum`.
+
 ### 5. The receipt
 
 A receipt is the record a gate writes for each run. It is a draft and is expected to change while
@@ -194,6 +224,10 @@ rule and named for it. CI in this repository checks that the corpus behaves as s
 Each tool validates its own output against the schemas in its own tests. The contract does not
 execute other people's binaries: commands can write, and a runner that executes arbitrary commands
 is unsafe.
+
+The stderr rule of §1 is one a schema cannot state, because an example is a JSON file and has no
+stderr. Each tool therefore asserts it where it runs its own binary: every test that validates a
+command's report also asserts that the command wrote nothing to stderr.
 
 **How a tool gets the schemas.** A tool vendors them: it commits a copy of `schemas/` from one
 release tag into its own repository, together with `SHA256SUMS` and a `VERSION` file holding the tag
@@ -250,6 +284,8 @@ urzua's current shape with those additions.
 |---|---|
 | 2026-11-23 | Accepted by the maintainer. Their words: "Move it to accepting? Let's unblock it". Asked directly which Status to record, they chose Accepted. The receipt (§5) stays a draft and the open questions stay open. |
 | 2026-11-23 | Version 1.1, from RFC-3, accepted by the maintainer the same day: the run profile and its schema, `run` in the list of profiles, and an optional `check` on a finding. The Summary, §2, §3 and §6 say so. Nothing in the base layer or the gate profile changes. The run profile fixes its `status` words, by the maintainer's decision of the same day; `status` stays tool-defined in the base layer and the gate profile. |
+| 2026-11-23 | **Proposed amendment, not yet accepted: stderr.** §1 said "Everything else goes to stderr", which fixed stdout and left stderr an open channel, and a tool came to print a second report there for a person. Asked whether to remove it, the maintainer said: "yes garita and generally all tools why would it have stderr or some other output? Like it should be standard no? Why are tools not standard". §1 now says a command that prints its report writes nothing to stderr, what stderr is for, and what is outside the rule; §6 says each tool asserts it in its own tests. This narrows what version 1.0 allowed. urzua 0.4.14 already conforms: nine invocations, normal and failing, wrote no byte to stderr. |
+| 2026-11-23 | **Proposed amendment, not yet accepted: new JSON Schema keywords.** §4 gains the rule that the schemas use a fixed list of keywords, checked in CI, and that adding one is announced to the consuming tools and ships in a release candidate first. The check and the README have carried this since the keyword check was added; this puts it in the record. |
 
 ## References
 
