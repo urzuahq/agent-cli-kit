@@ -14,7 +14,7 @@
     "name": "garita",
     "version": "0.1.0"
   },
-  "result": "FAILED",
+  "result": "WARNED",
   "checks": [
     {
       "name": "tests",
@@ -31,7 +31,7 @@
       "finished_at": "2026-11-23T09:30:04Z",
       "duration_ms": 4212,
       "exit_code": null,
-      "status": "fail",
+      "status": "warn",
       "examined": {
         "tests": 0
       },
@@ -40,12 +40,18 @@
     }
   ],
   "report": {
-    "status": "fail",
+    "status": "warn",
     "next_action": null,
     "next_action_reason": null,
     "next_action_inputs": [],
-    "blocking": true,
-    "findings": [],
+    "blocking": false,
+    "findings": [
+      {
+        "rule": "crash",
+        "severity": "warning",
+        "message": "check 'tests' was killed after its timeout"
+      }
+    ],
     "examined": {
       "checks": 1
     }

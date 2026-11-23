@@ -9,7 +9,7 @@
   ],
   "properties": {
     "receipt_version": {"type": "integer"},
-    "run_id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
+    "run_id": {"type": "string", "pattern": "^[0-7][0-9A-HJKMNP-TV-Z]{25}$"},
     "started_at": {"$ref": "#/$defs/utc_time"},
     "finished_at": {"$ref": "#/$defs/utc_time"},
     "trigger": {"type": "string"},
