@@ -54,6 +54,14 @@ expect log-invalid 1 "conform/log-changes-report"
 expect log-action 1 "conform/log-changes-report"
 expect top-requires 1 "conform/arg-name-unknown"
 expect index-float 0 ""
+expect error-kinds-empty 1 "conform/error-kinds conform/not-run"
+expect error-kinds-order 1 "conform/error-kinds conform/not-run"
+expect error-kinds-repeat 1 "conform/error-kinds conform/not-run"
+expect error-kind-old 1 "conform/error-kind-replaced conform/not-run"
+expect requires-any-unknown 1 "conform/arg-name-unknown"
+expect requires-any-empty 1 "conform/arg-rule"
+expect required-unless-self 1 "conform/arg-rule"
+expect required-unless-required 1 "conform/arg-required-unless"
 expect no-example 0 "conform/not-run"
 expect nothing-runs 0 "conform/not-run"
 expect nothing-runs 1 "conform/not-run conform/nothing-ran" --require-run
@@ -63,7 +71,7 @@ not_run() {
   local label="$1" kind="$2" out status=0
   shift 2
   out="$(python3 scripts/conform.py "$@" 2>&1)" || status=$?
-  if [ "$status" -eq 2 ] && printf '%s' "$out" | grep -q "\"error_kind\": \"$kind\""; then
+  if [ "$status" -eq 2 ] && printf '%s' "$out" | tr -d ' \n' | grep -q "\"error_kinds\":\[\"$kind\"\]"; then
     echo "ok    conform, $label: exit 2, not-run, $kind"
   else
     echo "FAIL  conform, $label: expected exit 2 and a not-run report of kind $kind, got exit $status" >&2

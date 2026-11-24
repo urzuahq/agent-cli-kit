@@ -41,7 +41,10 @@
           "type": "string",
           "required": false,
           "repeatable": true,
-          "means": "the names of the checks to run; all the trigger's checks when none is given"
+          "means": "the names of the checks to run; all the trigger's checks when none is given",
+          "required_unless": [
+            "--trigger"
+          ]
         },
         {
           "name": "--trigger",
@@ -84,6 +87,18 @@
           "repeatable": true,
           "after_separator": true,
           "means": "files whose names begin with a dash"
+        },
+        {
+          "name": "--since",
+          "kind": "option",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "requires_any": [
+            "--base",
+            "--trigger"
+          ],
+          "means": "only checks that changed since this run id"
         }
       ]
     },

@@ -25,6 +25,7 @@ import tempfile
 
 VALIDATOR = "check-jsonschema==0.39.0"
 SCHEMA_OF_PROFILE = {"base": "report", "gate": "gate-report", "run": "run-report"}
+ERROR_KINDS = ["usage", "config", "environment", "internal"]
 ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\+?=")
 
 findings = []
@@ -178,7 +179,11 @@ def check_describe(describe):
         for arg in args:
             if arg["kind"] == "flag" and "type" in arg:
                 fail("arg-flag-type", f"{arg['name']} is a flag and has a type", name)
-            for key in ("conflicts_with", "requires"):
+            if "required_unless" in arg and arg["required"]:
+                fail("arg-required-unless", f"{arg['name']} has required_unless and required true", name)
+            for key in ("conflicts_with", "requires", "requires_any", "required_unless"):
+                if key in arg and (not arg[key] or arg["name"] in arg[key]):
+                    fail("arg-rule", f"{key} of {arg['name']} is empty or names the argument itself", name)
                 for other in arg.get(key, []):
                     if other not in names:
                         fail("arg-name-unknown", f"{arg['name']} names {other} in {key}, which is not declared", name)
@@ -205,6 +210,15 @@ def check_exit_code(profile, report, code, command):
             fail("exit-code", f"blocking is {report.get('blocking')!r} and the exit code is {code}", command)
     elif not not_run and code not in (0, 1):
         fail("exit-code", f"the exit code is {code}", command)
+
+
+def check_error_kinds(report, command):
+    """Only called on a report that already validated against its schema."""
+    if "error_kind" in report:
+        fail("error-kind-replaced", "the report prints error_kind, which error_kinds replaced", command)
+    kinds = report.get("error_kinds")
+    if kinds is not None and (not kinds or kinds != [kind for kind in ERROR_KINDS if kind in kinds]):
+        fail("error-kinds", f"error_kinds is {kinds}: it is never empty, and is in the fixed order, each once", command)
 
 
 def check_commands_as_arguments(report, command):
@@ -245,7 +259,7 @@ def stable(report, code):
         report.get("next_action_argv"),
         report.get("next_action_inputs"),
         report.get("examined"),
-        report.get("error_kind"),
+        report.get("error_kinds"),
         [
             (f.get("rule"), f.get("severity"), f.get("message"), f.get("file"), f.get("line"), f.get("check"))
             for f in report.get("findings", [])
@@ -324,9 +338,10 @@ def main(arguments):
         check_exit_code(command["profile"], report, code, name)
         if strict:
             check_commands_as_arguments(report, name)
+            check_error_kinds(report, name)
         if report["status"] == "not-run":
-            kind = report.get("error_kind", "no error_kind")
-            fail("not-run", f"answered not-run ({kind}), so it was not exercised", name, "warning")
+            kinds = ", ".join(report.get("error_kinds", [])) or "no error_kinds"
+            fail("not-run", f"answered not-run ({kinds}), so it was not exercised", name, "warning")
         else:
             exercised += 1
     if options.require_run and exercised == 0:
@@ -384,7 +399,7 @@ def not_run(error, kind):
         {
             "status": "not-run",
             "error": error,
-            "error_kind": kind,
+            "error_kinds": [kind],
             "next_action": None,
             "next_action_reason": None,
             "next_action_argv": None,

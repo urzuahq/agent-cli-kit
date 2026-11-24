@@ -81,10 +81,11 @@ urzua's reports are unaffected.
 
 ### 2. Scope
 
-`scope` is an object with a required `kind`: `staged`, `changed`, `affected` or `all`. It may carry
-`files`, an array of repository-relative paths, and `packages`, an array of package names. The same
-shape is the `scope` of a receipt's check, which the draft receipt schema already requires to be an
-object with a `kind`.
+`scope` is an object with a required `kind`: `staged`, `changed`, `affected`, `all` or `named`.
+`named` is a run whose caller listed the files itself, whatever the trigger; the other four say how
+the runner chose them. It may carry `files`, an array of repository-relative paths, and `packages`,
+an array of package names. The same shape is the `scope` of a receipt's check, which the draft
+receipt schema already requires to be an object with a `kind`.
 
 ### 3. Suppressed findings
 
@@ -219,6 +220,7 @@ output keeps every other key it prints today.
 | 2026-11-23 | Accepted by the maintainer. Their words, in answer to a numbered list whose first item was "Accept RFC-3": "I accept 1". Three points stay open and are theirs: whether the run profile fixes its status words (§1), whether a runner's own configuration and flags are outside the contract (§7), and whether the ruling that a tool defines no contract covers tools other than garita. The dates of the ruling and of this record were first written as 2026-11-24 in error and are corrected here. |
 | 2026-11-23 | The maintainer refined the ruling behind this RFC. Their words: "each tool can have extra keys I guess, and that's that tool's specific extended contract", and "the CLI kit is for contract but yeah we would customise it per the one". The layers that answer was given against: the base contract is what every tool prints, and is this repository's; a profile is the base customised for one kind of command, also this repository's, written with the tool; a tool's extra keys are allowed and are that tool's own extended contract, which must not contradict the base or its profile; a tool's flags and configuration file are its interface. This applies to every tool, not to garita alone. §7 now says that an item not taken may stay in garita as garita's own. What this RFC took stays taken. Whether the run profile fixes its status words is still open. |
 | 2026-11-23 | The maintainer decided the status words. Offered fixed words, free text as before, or a list that accepts other words, they chose fixed. Their words, dictated and transcribed, with the bracketed words supplied by the relay: "Maybe we don't do open strings and do [it properly] now. Just do fixed schema [for] now yeah". The run report's `status` is `pass`, `warn`, `fail` or `not-run`, and a check's adds `skipped`. `v1.1.0-rc.1` accepted any string; the lists are closed from `v1.1.0-rc.2`. |
+| 2026-11-24 | Amendment, accepted by the maintainer, who chose "Add `named`": §2 gains a fifth `scope.kind`, `named`, for a run whose caller listed the files. garita's first conforming reports showed the gap: a run given `--files` printed `staged`, the trigger's word, for files that were not staged. It ships in `v1.1.0-rc.4`. |
 
 ## References
 

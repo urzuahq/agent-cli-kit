@@ -1,0 +1,12 @@
+{
+  "status": "not-run",
+  "error": "the configuration is not valid and this is not a git repository",
+  "error_kinds": [
+    "config",
+    "environment"
+  ],
+  "next_action": null,
+  "next_action_reason": null,
+  "next_action_argv": null,
+  "next_action_inputs": []
+}
