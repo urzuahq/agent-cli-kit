@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""A small conforming tool, used to test scripts/conform.py.
+
+FIXTURE_FAULT makes it break one rule of the contract, so the test can see the
+runner catch it.
+"""
+import json
+import os
+import sys
+import time
+
+FAULT = os.environ.get("FIXTURE_FAULT", "")
+NAME, VERSION = "fixturetool", "0.1.0"
+
+DESCRIBE = {
+    "name": NAME,
+    "version": VERSION,
+    "contract_version": "1.1",
+    "system": 0,
+    "args": [
+        {
+            "name": "--log",
+            "kind": "flag",
+            "required": False,
+            "repeatable": False,
+            "means": "write the log to stderr, one JSON object per line",
+        }
+    ],
+    "env": [],
+    "config": [],
+    "log": {"arg": "--log"},
+    "commands": [
+        {
+            "name": "check",
+            "profile": "gate",
+            "safe": True,
+            "scopes": ["paths"],
+            "metrics": [],
+            "stdin": None,
+            "args": [
+                {
+                    "name": "paths",
+                    "kind": "positional",
+                    "type": "path",
+                    "required": False,
+                    "repeatable": True,
+                    "means": "the files to check; every file when none is given",
+                }
+            ],
+        },
+        {
+            "name": "status",
+            "profile": "base",
+            "safe": True,
+            "scopes": [],
+            "metrics": [],
+            "stdin": None,
+            "args": [],
+        },
+        {
+            "name": "show",
+            "profile": "base",
+            "safe": True,
+            "scopes": [],
+            "metrics": [],
+            "stdin": None,
+            "args": [
+                {
+                    "name": "id",
+                    "kind": "positional",
+                    "type": "string",
+                    "required": True,
+                    "repeatable": False,
+                    "means": "the id of the thing to show",
+                }
+            ],
+        },
+        {
+            "name": "apply",
+            "profile": "base",
+            "safe": False,
+            "scopes": [],
+            "metrics": [],
+            "stdin": None,
+            "args": [],
+        },
+        {
+            "name": "serve",
+            "profile": "exempt",
+            "protocol": "stream",
+            "safe": True,
+            "scopes": [],
+            "metrics": [],
+            "stdin": None,
+            "args": [],
+        },
+    ],
+}
+
+
+def emit(report, code):
+    if FAULT == "stderr":
+        print("done", file=sys.stderr)
+    if FAULT == "stdout":
+        print("checked 3 files")
+    json.dump(report, sys.stdout)
+    sys.stdout.write("\n")
+    sys.exit(3 if FAULT == "exit" and code == 0 else code)
+
+
+def action(command, reason, argv, inputs):
+    keys = {
+        "next_action": command,
+        "next_action_reason": reason,
+        "next_action_argv": argv,
+        "next_action_inputs": inputs,
+    }
+    if FAULT == "argv-missing":
+        del keys["next_action_argv"]
+    return keys
+
+
+def log(message):
+    line = {"time": "2026-11-24T00:00:00Z", "level": "info", "message": message}
+    print("starting" if FAULT == "log-text" else json.dumps(line), file=sys.stderr)
+
+
+def main():
+    args = sys.argv[1:]
+    if args == ["--version"]:
+        print(f"{NAME} v{VERSION}" if FAULT == "version" else f"{NAME} {VERSION}")
+        return
+    logging = "--log" in args
+    args = [arg for arg in args if arg != "--log"]
+    if logging:
+        log(f"running {' '.join(args)}")
+    if FAULT == "slow" and args != ["describe"]:
+        time.sleep(30)
+    if args == ["describe"]:
+        if FAULT == "describe-text":
+            print("fixturetool has three commands")
+            return
+        describe = json.loads(json.dumps(DESCRIBE))
+        if FAULT == "describe-schema":
+            del describe["system"]
+        if FAULT == "arg-unknown":
+            describe["commands"][0]["args"][0]["conflicts_with"] = ["--nothing"]
+        if FAULT == "flag-type":
+            describe["args"][0]["type"] = "string"
+        if FAULT == "top-requires":
+            describe["args"][0]["requires"] = ["--nothing"]
+        if FAULT == "describe-duplicate":
+            describe["commands"][0]["args"].append(describe["commands"][0]["args"][0])
+        if FAULT == "describe-log":
+            describe["log"] = {"arg": "--trace"}
+        json.dump(describe, sys.stdout)
+        sys.stdout.write("\n")
+        return
+    if args[:1] == ["check"]:
+        placeholder_index = 5 if FAULT == "index" else 3
+        argv = ["fixturetool", "apply", "--ids", "<record>"]
+        string = "fixturetool apply --ids <record>" if FAULT == "argv-bare" else "fixturetool apply --ids '<record>'"
+        finding = {
+            "rule": "example.rule",
+            "severity": "warning",
+            "message": "one thing could be tidier",
+            "fix": "fixturetool apply",
+            "fix_argv": ["fixturetool", "apply"],
+        }
+        if FAULT == "fix-argv":
+            del finding["fix_argv"]
+        if FAULT == "fix-disagrees":
+            finding["fix_argv"] = ["fixturetool", "apply", "--all"]
+        if FAULT == "fix-orphan":
+            del finding["fix"]
+        if FAULT == "argv-empty":
+            argv = []
+        if FAULT == "argv-expansion":
+            string, argv = 'fixturetool apply --ids "$HOME"', ["fixturetool", "apply", "--ids", "$HOME"]
+        inputs = [{"placeholder": "<record>", "flag": "--ids", "means": "a record id", "index": placeholder_index}]
+        if FAULT == "index-missing":
+            del inputs[0]["index"]
+        if FAULT in ("argv-expansion", "argv-empty"):
+            inputs = []
+        report = {
+            "status": "findings-present",
+            "blocking": FAULT == "blocking",
+            "findings": [finding],
+            "examined": {"files": 3},
+            **action(string, "applies 1 pending change", argv, inputs),
+        }
+        if FAULT == "schema":
+            del report["examined"]
+        if FAULT == "inputs-malformed":
+            report["next_action_inputs"] = ["<record>"]
+        if FAULT == "log-changes" and logging:
+            report["notices"] = [{"severity": "info", "subject": "log", "message": "the log is on"}]
+        if FAULT == "log-invalid" and logging:
+            report["findings"] = 5
+        if FAULT == "log-action" and logging:
+            report["next_action"] = "fixturetool destroy --ids '<record>'"
+            report["next_action_argv"] = ["fixturetool", "destroy", "--ids", "<record>"]
+        if FAULT == "index-float":
+            report["next_action_inputs"][0]["index"] = 3.0
+        emit(report, 0)
+    if args == ["status"]:
+        emit({"status": "idle", **action(None, None, None, [])}, 0)
+    emit(
+        {
+            "status": "not-run",
+            "error": "the arguments are not ones this tool accepts",
+            "error_kind": "usage",
+            **action(None, None, None, []),
+        },
+        2,
+    )
+
+
+main()

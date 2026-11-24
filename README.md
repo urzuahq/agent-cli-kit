@@ -5,8 +5,10 @@ an agent, or a control plane such as `garita`, can read it without a per-tool pa
 repository holds the contract record, JSON Schemas, example reports, and a CI check that the
 examples validate. The record is
 [RFC-1](docs/rfc/RFC-1-the-agent-cli-contract.md). The released contract is version 1.0. Version
-1.1, which adds the run profile of
-[RFC-3](docs/rfc/RFC-3-the-run-profile-a-gate-that-runs-other-checks.md), is a release candidate.
+1.1 is a release candidate. It adds the run profile of
+[RFC-3](docs/rfc/RFC-3-the-run-profile-a-gate-that-runs-other-checks.md) and the rules of
+[RFC-4](docs/rfc/RFC-4-structured-in-and-out.md): everything that goes into a tool or comes out of
+it is structured and declared.
 
 ## The layers
 
@@ -78,19 +80,36 @@ know. The schemas use a fixed list of keywords, held in `scripts/check_keywords.
 fails on any other. A change that adds a keyword to that list is announced to the consuming tools
 before the release that carries it, and ships in a release candidate first.
 
+## Check a tool against the contract (1.1)
+
+```sh
+python3 scripts/conform.py path/to/your-tool
+```
+
+Run it in the tool's own repository, in CI: clone this repository at the commit in the vendored
+`VERSION` and run the script from that clone, with `--schemas` pointing at the vendored copy. It
+runs `describe`, then every command the tool marks `safe`, and checks that stdout is one JSON object
+valid for the command's profile, that stderr is empty (and, when the tool declares a log, that each
+line of it is one valid JSON object once it is turned on), that the exit code agrees with the
+report, and that each command printed as a string and as arguments is the same command. It skips
+commands declared `exempt` and commands not marked `safe`. A tool that prints `contract_version`
+`"1.0"` is checked only against what 1.0 required. It prints one report and exits 0, 1 or 2 like any
+other gate. It needs `python3` and either `uvx` or `pipx`. `--schemas DIR` points it at a vendored
+copy of the schemas, and `--timeout SECONDS` changes the limit for each command, which is 60.
+
 ## Run the check locally
 
 ```sh
 make check
 ```
 
-This validates every file in `examples/valid/`, confirms that every file in `examples/invalid/`
-is rejected, and checks `schemas/SHA256SUMS`. After changing a schema, run `make sums`. The schema
-is chosen from the filename: `<schema>.<case>.json`. It needs `python3` and either `uvx` or `pipx`,
-and runs a pinned `check-jsonschema`.
+This validates every file in `examples/valid/`, confirms that every file in `examples/invalid/` is
+rejected, checks `schemas/SHA256SUMS`, and tests the conformance runner against a small tool in
+`tests/fixture/`, once as it is and once for each rule it can be made to break. After changing a
+schema, run `make sums`. The schema is chosen from the filename: `<schema>.<case>.json`. It needs
+`python3` and either `uvx` or `pipx`, and runs a pinned `check-jsonschema`.
 
 ## Deferred
 
-No Rust crate, no shared library, and no conformance runner that executes a tool. Both are
-deliberately left until a second Rust tool, and a third conforming tool, justify them. See the open
-questions in the RFC.
+No Rust crate and no shared library. RFC-2 proposes a crate and records why it waits: the org does
+not publish Rust crates yet, and neither tool can depend on one any other way.
