@@ -236,13 +236,12 @@ two more. urzua put it at about a day plus the maintainer's edit. A fresh clone 
 cannot commit until the tool is built. urzua's agent harness hook already refuses in a governed
 session, with one case that is let through with a notice and would now refuse.
 
-Cost of the rest of §5: garita's hook already prints only the report when it blocks, and needs a
-new hook format for
-the missing-binary case, installed once per repository. urzua's git hooks print a banner and a
-closing line that go, and the prose its harness hook prints when the binary is missing becomes the
-same `not-run` literal, in the form that host accepts. An install script is not a command of the
-tool and is outside the contract: it is a shell script a person or a CI job runs once to put the
-tool on a machine.
+Cost of the rest of §5: garita's hook already prints only the report when it blocks, and needs a new
+hook format for the missing-binary case, installed once per repository. urzua's git hooks print a
+banner and a closing line that go, and the prose its harness hook prints when the binary is missing
+becomes the same `not-run` literal, in the form that host accepts. An install script is not a
+command of the tool and is outside the contract: it is a shell script a person or a CI job runs once
+to put the tool on a machine.
 
 ### 6. `describe` declares a tool's inputs
 
@@ -421,17 +420,19 @@ No JSON Schema keyword outside the checked list is needed.
 
 ### 12. What each tool changes
 
-**urzua**: ships `describe` with its inputs; moves a panic's text to `error` and sets `error_kind`;
-builds a usage error's message without the parser's usage block; removes the menu in `init`; drops
-the banner and closing line from its git hooks and the prose from its harness hook's missing-binary
-case; makes its git hooks exit 2 when the tool cannot run, with the records that decision touches,
-and its harness hook refuse in the one case it lets through today; builds every `next_action` from
-arguments and quotes its placeholders one way; runs the runner in CI.
+**urzua**: ships `describe` with its inputs, `log` and a `protocol` for each `exempt` command; moves
+a panic's text to `error` and sets `error_kind`; builds a usage error's message without the parser's
+usage block; removes the menu in `init`; drops the banner and closing line from its git hooks and
+the prose from its harness hook's missing-binary case; makes its git hooks exit 2 when the tool
+cannot run, with the records that decision touches, and its harness hook refuse in the one case it
+lets through today; builds every `next_action` from arguments, with `next_action_argv`, an `index`
+on each input and `fix_argv`, and quotes its placeholders one way; runs the runner in CI.
 
-**garita**: extends its panic handler to every command; sets `error_kind`; moves captured output
-from `message` to `output_tail` and `output` on the check; adds `args`, `env`, `stdin` and `config`
-to `describe`; ships a hook format that prints a `not-run` report when the binary is missing;
-prints `next_action_argv`, an `index` on each input and `fix_argv`; runs the runner in CI.
+**garita**: extends its panic handler to every command; declares `log` in `describe`, and a
+`protocol` when it has an `exempt` command; sets `error_kind`; moves captured output from `message`
+to `output_tail` and `output` on the check; adds `args`, `env`, `stdin` and `config` to `describe`;
+ships a hook format that prints a `not-run` report when the binary is missing; prints
+`next_action_argv`, an `index` on each input and `fix_argv`; runs the runner in CI.
 
 ## Open questions
 
