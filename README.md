@@ -89,9 +89,10 @@ python3 scripts/conform.py path/to/your-tool
 Run it in the tool's own repository, in CI. It runs `describe`, then every command the tool marks
 `safe`, and checks that stdout is one JSON object valid for the command's profile, that stderr is
 empty, that the exit code agrees with the report, and that each command printed as a string and as
-arguments is the same command. It prints one report and exits 0, 1 or 2 like any other gate. It
-needs `python3` and either `uvx` or `pipx`. `--schemas DIR` points it at a vendored copy of the
-schemas.
+arguments is the same command. It skips commands declared `exempt` and commands not marked `safe`.
+It prints one report and exits 0, 1 or 2 like any other gate. It needs `python3` and either `uvx`
+or `pipx`. `--schemas DIR` points it at a vendored copy of the schemas, and `--timeout SECONDS`
+changes the limit for each command, which is 60.
 
 ## Run the check locally
 
@@ -107,6 +108,5 @@ schema, run `make sums`. The schema is chosen from the filename: `<schema>.<case
 
 ## Deferred
 
-No Rust crate, no shared library, and no conformance runner that executes a tool. Both are
-deliberately left until a second Rust tool, and a third conforming tool, justify them. See the open
-questions in the RFC.
+No Rust crate and no shared library. RFC-2 proposes a crate and records why it waits: the org does
+not publish Rust crates yet, and neither tool can depend on one any other way.

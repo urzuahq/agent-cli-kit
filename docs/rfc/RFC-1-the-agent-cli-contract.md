@@ -199,11 +199,11 @@ A run that could not run still writes a receipt. Its `report` has `status` `not-
 
 ### 6. Conformance
 
-Conformance is two artifacts and no runner. `schemas/` holds JSON Schema 2020-12 files for the base
-report, the finding, the gate report, the run report, `describe`, the receipt and one line of a
-tool's log. `examples/` holds a corpus: valid examples that must validate, and invalid examples that
-must not, each violating one rule and named for it. CI in this repository checks that the corpus
-behaves as stated.
+Conformance in version 1.0 is two artifacts and no runner. Version 1.1 adds one, described at the
+end of this section. `schemas/` holds JSON Schema 2020-12 files for the base report, the finding,
+the gate report, the run report, `describe`, the receipt and one line of a tool's log. `examples/`
+holds a corpus: valid examples that must validate, and invalid examples that must not, each
+violating one rule and named for it. CI in this repository checks that the corpus behaves as stated.
 
 Each tool validates its own output against the schemas in its own tests. The contract does not
 execute other people's binaries: commands can write, and a runner that executes arbitrary commands

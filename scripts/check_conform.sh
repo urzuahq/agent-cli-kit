@@ -13,7 +13,8 @@ rules_of() {
 
 expect() {
   local fault="$1" code="$2" rules="$3" out got status=0
-  out="$(FIXTURE_FAULT="$fault" python3 scripts/conform.py "$tool" 2>&1)" || status=$?
+  shift 3
+  out="$(FIXTURE_FAULT="$fault" python3 scripts/conform.py "$tool" "$@" 2>&1)" || status=$?
   got="$(printf '%s' "$out" | rules_of 2>/dev/null || echo "not JSON")"
   if [ "$status" -eq "$code" ] && [ "$got" = "$rules" ]; then
     echo "ok    conform, fault '${fault}': exit $status${rules:+, $rules}"
@@ -37,13 +38,37 @@ expect version 1 "conform/version-line"
 expect describe-duplicate 1 "conform/arg-name-repeated"
 expect describe-log 1 "conform/log-declaration"
 expect log-text 1 "conform/log-line"
+expect log-changes 1 "conform/log-changes-report"
+expect argv-empty 1 "conform/argv-empty"
+expect argv-expansion 1 "conform/argv-disagrees"
+expect index-missing 1 "conform/input-index-missing"
+expect fix-disagrees 1 "conform/fix-argv-disagrees"
+expect fix-orphan 1 "conform/fix-argv-orphan"
+expect inputs-malformed 1 "conform/report-schema"
+expect describe-text 1 "conform/describe"
+expect describe-schema 1 "conform/describe-schema"
+expect arg-unknown 1 "conform/arg-name-unknown"
+expect flag-type 1 "conform/arg-flag-type"
+expect slow 1 "conform/timeout" --timeout 1
 
-status=0
-out="$(python3 scripts/conform.py tests/fixture/no-such-tool 2>&1)" || status=$?
-if [ "$status" -eq 2 ] && printf '%s' "$out" | grep -q '"status": "not-run"'; then
-  echo "ok    conform, missing binary: exit 2, not-run"
+not_run() {
+  local label="$1" kind="$2" out status=0
+  shift 2
+  out="$(python3 scripts/conform.py "$@" 2>&1)" || status=$?
+  if [ "$status" -eq 2 ] && printf '%s' "$out" | grep -q "\"error_kind\": \"$kind\""; then
+    echo "ok    conform, $label: exit 2, not-run, $kind"
+  else
+    echo "FAIL  conform, $label: expected exit 2 and a not-run report of kind $kind, got exit $status" >&2
+    failed=1
+  fi
+}
+
+not_run "missing binary" environment tests/fixture/no-such-tool
+not_run "no arguments" usage
+
+if python3 scripts/test_split.py; then
+  echo "ok    conform, command splitting"
 else
-  echo "FAIL  conform, missing binary: expected exit 2 and a not-run report, got exit $status" >&2
   failed=1
 fi
 

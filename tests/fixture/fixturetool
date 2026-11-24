@@ -7,6 +7,7 @@ runner catch it.
 import json
 import os
 import sys
+import time
 
 FAULT = os.environ.get("FIXTURE_FAULT", "")
 NAME, VERSION = "fixturetool", "0.1.0"
@@ -133,8 +134,19 @@ def main():
     args = [arg for arg in args if arg != "--log"]
     if logging:
         log(f"running {' '.join(args)}")
+    if FAULT == "slow" and args != ["describe"]:
+        time.sleep(30)
     if args == ["describe"]:
+        if FAULT == "describe-text":
+            print("fixturetool has three commands")
+            return
         describe = json.loads(json.dumps(DESCRIBE))
+        if FAULT == "describe-schema":
+            del describe["system"]
+        if FAULT == "arg-unknown":
+            describe["commands"][0]["args"][0]["conflicts_with"] = ["--nothing"]
+        if FAULT == "flag-type":
+            describe["args"][0]["type"] = "string"
         if FAULT == "describe-duplicate":
             describe["commands"][0]["args"].append(describe["commands"][0]["args"][0])
         if FAULT == "describe-log":
@@ -155,20 +167,32 @@ def main():
         }
         if FAULT == "fix-argv":
             del finding["fix_argv"]
+        if FAULT == "fix-disagrees":
+            finding["fix_argv"] = ["fixturetool", "apply", "--all"]
+        if FAULT == "fix-orphan":
+            del finding["fix"]
+        if FAULT == "argv-empty":
+            argv = []
+        if FAULT == "argv-expansion":
+            string, argv = 'fixturetool apply --ids "$HOME"', ["fixturetool", "apply", "--ids", "$HOME"]
+        inputs = [{"placeholder": "<record>", "flag": "--ids", "means": "a record id", "index": placeholder_index}]
+        if FAULT == "index-missing":
+            del inputs[0]["index"]
+        if FAULT in ("argv-expansion", "argv-empty"):
+            inputs = []
         report = {
             "status": "findings-present",
             "blocking": FAULT == "blocking",
             "findings": [finding],
             "examined": {"files": 3},
-            **action(
-                string,
-                "applies 1 pending change",
-                argv,
-                [{"placeholder": "<record>", "flag": "--ids", "means": "a record id", "index": placeholder_index}],
-            ),
+            **action(string, "applies 1 pending change", argv, inputs),
         }
         if FAULT == "schema":
             del report["examined"]
+        if FAULT == "inputs-malformed":
+            report["next_action_inputs"] = ["<record>"]
+        if FAULT == "log-changes" and logging:
+            report["notices"] = [{"severity": "info", "subject": "log", "message": "the log is on"}]
         emit(report, 0)
     if args == ["status"]:
         emit({"status": "idle", **action(None, None, None, [])}, 0)
