@@ -133,14 +133,15 @@ carries a usage block, a heading, or another tool's output.
 
 **Data, which gets a key:**
 
-- **Why a command could not run.** A `not-run` report may carry `error_kind`, one of `usage` (the
-  arguments were wrong), `config` (the configuration could not be loaded or is invalid),
-  `environment` (something outside the tool is missing: a repository, a program, a directory) or
-  `internal` (the tool failed). When more than one applies, `error_kind` is the first of those four,
-  in that order, that does, and `error` names every reason. `error` stays one sentence. For `usage`
-  it names the argument that was wrong and carries no usage block; the inputs are in `describe`. A
-  run report that is `not-run` because a check's program could not start may carry `error_kind`
-  beside its `checks`.
+- **Why a command could not run.** A `not-run` report may carry `error_kinds`, an array of every
+  kind of reason that applies: `usage` (the arguments were wrong), `config` (the configuration could
+  not be loaded or is invalid), `environment` (something outside the tool is missing: a repository,
+  a program, a directory) and `internal` (the tool failed). The array is never empty, names each
+  kind once, and lists them in that order, so a reader that wants one reason takes the first. There
+  is one key and it is always an array, also when a single kind applies. `error` stays one sentence
+  and names every reason. For `usage` it names the argument that was wrong and carries no usage
+  block; the inputs are in `describe`. A run report that is `not-run` because a check's program
+  could not start may carry `error_kinds` beside its `checks`.
 - **A wrapped tool's output.** In the run profile, each entry of `checks` may carry `output_tail`,
   the last 4,000 characters of the check's output, and `output`, the path of the full output: the
   same two keys a receipt's check has. A finding's `message` no longer carries them.
@@ -201,8 +202,8 @@ server. They cannot print the contract's report on stdout, because stdout belong
 - **The list of `protocol` words is open.** A tool that speaks another host's format names it with
   a word of its own, and a reader that does not know the word does not call the command.
 - **A hook script a tool installs** is part of the tool. When the tool's binary is missing, the
-  script prints a `not-run` report as a literal: `status` `not-run`, an `error`, `error_kind`
-  `environment`, `next_action`, `next_action_reason` and `next_action_argv` null, and an empty
+  script prints a `not-run` report as a literal: `status` `not-run`, an `error`, `error_kinds`
+  `["environment"]`, `next_action`, `next_action_reason` and `next_action_argv` null, and an empty
   `next_action_inputs`.
 - **A hook that cannot run its tool blocks.** §5.1 states the rule.
 
@@ -276,6 +277,8 @@ Each entry of `args`:
 | `format` | string | no | A narrower form of a string, such as `date` for `YYYY-MM-DD`. |
 | `conflicts_with` | array of strings | no | The `name` of each argument it cannot be given with. |
 | `requires` | array of strings | no | The `name` of each argument that must be given with it. |
+| `requires_any` | array of strings | no | The `name` of arguments of which at least one must be given with it. |
+| `required_unless` | array of strings | no | The `name` of arguments any one of which stands in for it. |
 | `after_separator` | boolean | no | True for positional arguments that are given after `--`. |
 
 **Environment.** The tool carries `env`, an array of `{name, means}`, one entry per environment
@@ -296,13 +299,19 @@ expected to run. The runner uses it (§8).
 **`describe` does not list itself.** Its answer is not a report, so it fits no profile. A reader
 gets the list by running it, and the runner runs it on its own.
 
-**What the shape cannot say.** `conflicts_with` and `requires` cover two arguments that exclude
-each other and one that needs another. A rule beyond that, such as an argument that is required
-unless another is given, or one that needs either of two others, is stated in the argument's
-`means`, and the argument is declared with the weaker of its two readings: `required` is false
-when anything can stand in for it. A tool declares such a rule whether its parser or its own code
-enforces it, and answers a call that breaks it with a `not-run` report whose `error_kind` is
-`usage`.
+**Rules between arguments are declared, not described.** Four keys state them, and each holds the
+`name` of other arguments of the same command or of the tool:
+
+- `conflicts_with`: it cannot be given with any of these.
+- `requires`: when it is given, every one of these must be given too.
+- `requires_any`: when it is given, at least one of these must be given too.
+- `required_unless`: it must be given, unless at least one of these is. An argument that carries
+  `required_unless` has `required` false, since it is not required in every call.
+
+A tool declares such a rule whether its parser or its own code enforces it. A rule that even these
+four cannot state is rare. For one, the tool declares the weaker reading, says the rule in the
+argument's `means`, and answers a call that breaks it with a `not-run` report whose `error_kinds`
+holds `usage`. That is the fallback, not the usual route.
 
 Names are unique within a command together with the tool's top-level `args`, and a name in
 `conflicts_with` or `requires` is one of them. A schema cannot state either rule, so the runner
@@ -336,10 +345,11 @@ in. It does what an agent would do first, and checks the answers.
 
 1. It runs `<tool> describe` and validates the result against `describe.schema.json`. It then
    checks what the schema cannot: that argument names are unique, that every name in
-   `conflicts_with` and `requires` exists, and that the flag or variable `log` names is declared.
+   `conflicts_with`, `requires`, `requires_any` and `required_unless` exists, that an argument with
+   `required_unless` has `required` false, and that the flag or variable `log` names is declared.
 2. For every command that `describe` marks `safe` and that is not `exempt`, it runs the command
    with the arguments in `example`, or with none. A command that needs an argument and has no
-   `example` answers with a `not-run` report whose `error_kind` is `usage`, and that is a pass.
+   `example` answers with a `not-run` report whose `error_kinds` holds `usage`, and that is a pass.
 3. For each run it checks: stdout is one JSON object and validates against the schema of the
    command's profile; stderr is empty; and the exit code is 2 exactly when `status` is `not-run`.
    For the gate and run profiles, whose reports carry `blocking`, the exit code is otherwise 1
@@ -398,7 +408,7 @@ settled as one version.
 | A log on request, one JSON object per line | Taken | 1.1 |
 | `--version` fixed, `--help` outside the contract | Taken | 1.1 |
 | Which strings are text and which are data | Taken | 1.1 |
-| `error_kind` | Taken, optional key | 1.1 |
+| `error_kinds` | Taken, optional key | 1.1 |
 | `output_tail` and `output` on a check entry | Taken, optional keys | 1.1 |
 | `protocol` on an `exempt` command; hooks print the report | Taken | 1.1 |
 | A hook that cannot run its tool blocks | Taken | 1.1 |
@@ -420,7 +430,7 @@ contract that stays put, and one settled 1.1 serves that better than a 1.1 follo
 - `describe.schema.json`: `args` at the top level and per command, `env`, `stdin`, `config`,
   `example`, `log` and `protocol`, each required as §6 and §5 say when `contract_version` is not
   `"1.0"`.
-- `report.schema.json`: optional `error_kind`; optional `next_action_argv`, null exactly when
+- `report.schema.json`: optional `error_kinds`; optional `next_action_argv`, null exactly when
   `next_action` is null; optional `index` on an entry of `next_action_inputs`. The example
   `report.next-action.json` quotes its placeholder.
 - `finding.schema.json`: optional `fix_argv`.
@@ -441,7 +451,7 @@ No JSON Schema keyword outside the checked list is needed.
 ### 12. What each tool changes
 
 **urzua**: ships `describe` with its inputs, `log` and a `protocol` for each `exempt` command; moves
-a panic's text to `error` and sets `error_kind`; builds a usage error's message without the parser's
+a panic's text to `error` and sets `error_kinds`; builds a usage error's message without the parser's
 usage block; removes the menu in `init`; drops the banner and closing line from its git hooks and
 the prose from its harness hook's missing-binary case; makes its git hooks exit 2 when the tool
 cannot run, with the records that decision touches, and its harness hook refuse in the one case it
@@ -449,7 +459,7 @@ lets through today; builds every `next_action` from arguments, with `next_action
 on each input and `fix_argv`, and quotes its placeholders one way; runs the runner in CI.
 
 **garita**: extends its panic handler to every command; declares `log` in `describe`, and a
-`protocol` when it has an `exempt` command; sets `error_kind`; moves captured output from `message`
+`protocol` when it has an `exempt` command; sets `error_kinds`; moves captured output from `message`
 to `output_tail` and `output` on the check; adds `args`, `env`, `stdin` and `config` to `describe`;
 ships a hook format that prints a `not-run` report when the binary is missing; prints
 `next_action_argv`, an `index` on each input and `fix_argv`; runs the runner in CI.
@@ -466,7 +476,7 @@ accepted the three passages written from their answers (see Revisions).
 | 2026-11-23 | The maintainer answered the open questions, by voice. The transcription is rough; bracketed words are the relay's reading. "let's build the runner now. And it's going to be required for 1.1. Um, we can do STD [logging] on request. In fact, actually, we could do a structured logging output. [...] Next action should actually be structured. Maybe we just decide on that now! Yeah, let's standardize the [exit of the] hook. With the block. And yeah, let's decide on the system value is [zero]. And then I'll accept [RFC-4]." So: the runner is built now and passing it is required for 1.1 (§8, §9, unchanged); a log is allowed on request and is structured (§2.1, new; §2 had allowed none); a command is printed as its arguments in 1.1 (§4.1, new; it had been deferred); a hook that cannot run its tool blocks, for every tool (§5.1, new; §5 had left it to each tool); `system` is 0 for a tool that runs others (§6, unchanged). §2.1, §4.1 and §5.1 are text the maintainer has not yet read. This record stays Draft until they have. |
 | 2026-11-24 | Accepted by the maintainer, who had read §2.1, §4.1 and §5.1 and the additions an independent review made to them. Asked "Do you accept RFC-4 as it now reads?" and "Does urzua's `on_unjudged: allow` option sit outside the hook rule?", they said: "I accept RFC, and yes allow option can be outside rule". RFC-1's rule on new JSON Schema keywords was proposed separately and is not part of this acceptance. |
 | 2026-11-24 | Amendment, accepted by the maintainer. Shown the new sentence in full with the rule on new JSON Schema keywords for RFC-1, they said: "Yes to both". §5.1 gains one case outside the rule: a hook that can tell, without running the tool, that it was called somewhere the tool does not govern. Read literally, the accepted text would have a machine-wide harness hook with no binary refuse every edit in every repository on that machine, including ones that never adopted the tool. urzua's ADR-89 already treats a session with no urzua configuration as ungoverned. A hook that cannot tell without the tool still blocks. |
-| 2026-11-24 | **Proposed amendment, not yet accepted.** §6 gains two statements that both tools asked for while building `describe`. `describe` does not list itself among `commands`. And a rule between arguments that `conflicts_with` and `requires` cannot express is stated in `means`, with the argument declared by its weaker reading. Neither changes a schema or the runner, which already behave this way. §4 also gains an order for `error_kind` when several reasons apply: `usage`, then `config`, then `environment`, then `internal`. garita already follows it. |
+| 2026-11-24 | **Proposed amendments, not yet recorded as accepted.** The maintainer decided four points raised by the tools' first 1.1 builds; the wording of two is new and waits for their reading. Decided as written: `describe` does not list itself among `commands` (§6). Decided, new wording: rules between arguments get two more keys, `requires_any` and `required_unless`, so that no rule lives in prose, with text as the rare fallback (§6); and a `not-run` report says why with `error_kinds`, an array of every kind that applies, in place of a single `error_kind` (§4). The fourth point, a `scope.kind` of `named`, is in RFC-3. All of it ships as `v1.1.0-rc.4`. |
 
 ## Non-goals
 
