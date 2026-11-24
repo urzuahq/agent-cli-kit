@@ -170,6 +170,14 @@ valid example that the new rule admits and one invalid example that it rejects, 
 An invalid example must fail for that rule alone. `schemas/SHA256SUMS` is regenerated in the same
 pull request, and CI fails when it is stale.
 
+**A new JSON Schema keyword.** A tool may read the schemas with its own code, not a general
+validator, and stop on a keyword it does not know. urzua's conformance test does. The schemas
+therefore use a fixed list of keywords, held in `scripts/check_keywords.py`, and CI fails on any
+other. A change that adds a keyword to that list is announced to the consuming tools before the
+release that carries it, and that release is preceded by a release candidate. The same care applies
+to a construct the schemas have not used before, such as a `null` inside an `enum`, which no check
+enforces.
+
 ### 5. The receipt
 
 A receipt is the record a gate writes for each run. It is a draft and is expected to change while
@@ -272,6 +280,7 @@ urzua's current shape with those additions.
 | 2026-11-23 | Accepted by the maintainer. Their words: "Move it to accepting? Let's unblock it". Asked directly which Status to record, they chose Accepted. The receipt (§5) stays a draft and the open questions stay open. |
 | 2026-11-23 | Version 1.1, from RFC-3, accepted by the maintainer the same day: the run profile and its schema, `run` in the list of profiles, and an optional `check` on a finding. The Summary, §2, §3 and §6 say so. Nothing in the base layer or the gate profile changes. The run profile fixes its `status` words, by the maintainer's decision of the same day; `status` stays tool-defined in the base layer and the gate profile. |
 | 2026-11-24 | Brought into line with RFC-4, accepted by the maintainer on 2026-11-24, which completes version 1.1. §1 now says stderr is empty from 1.1, that the exit codes are those of a command that prints its report, and names `next_action_argv`, `index` and `error_kind`; §2 names `fix_argv`; §3 says `describe` declares a tool's inputs and fixes the `--version` line; §6 names the log-line schema and the conformance runner, which reverses this record's earlier deferral of one. A tool that prints `contract_version` `"1.0"` is held to this record as it stood at `v1.0.0`. |
+| 2026-11-24 | Amendment, accepted by the maintainer: new JSON Schema keywords. Asked about this rule together with an addition to RFC-4, they said: "Yes to both". §4 gains the rule that the schemas use a fixed list of keywords, checked in CI, and that adding one is announced to the consuming tools and ships in a release candidate first. The check and the README had carried it as practice since the keyword check was added. |
 
 ## References
 

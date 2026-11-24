@@ -228,6 +228,11 @@ could not look, the hook does not let it happen. This is one rule for every tool
   could not judge at all. What a tool does when it ran and has no opinion on a change is a
   different question again, and stays the tool's. urzua's `on_unjudged: allow` option is of that
   second kind, and the maintainer confirmed it is outside this rule.
+- **A hook with nothing to govern is outside this rule.** A hook may be installed for a whole
+  machine and be called in places the tool was never set up for. When the hook can tell that
+  without running the tool, such as by finding no configuration for the tool, it lets the action
+  through and prints nothing, whether or not the binary is there. A hook that cannot tell without
+  the tool blocks. A git hook is installed in one repository and always has something to govern.
 - **The host's own way round is the host's.** `git commit --no-verify` skips a hook, and this rule
   says nothing about it.
 
@@ -447,6 +452,7 @@ accepted the three passages written from their answers (see Revisions).
 |---|---|
 | 2026-11-23 | The maintainer answered the open questions, by voice. The transcription is rough; bracketed words are the relay's reading. "let's build the runner now. And it's going to be required for 1.1. Um, we can do STD [logging] on request. In fact, actually, we could do a structured logging output. [...] Next action should actually be structured. Maybe we just decide on that now! Yeah, let's standardize the [exit of the] hook. With the block. And yeah, let's decide on the system value is [zero]. And then I'll accept [RFC-4]." So: the runner is built now and passing it is required for 1.1 (§8, §9, unchanged); a log is allowed on request and is structured (§2.1, new; §2 had allowed none); a command is printed as its arguments in 1.1 (§4.1, new; it had been deferred); a hook that cannot run its tool blocks, for every tool (§5.1, new; §5 had left it to each tool); `system` is 0 for a tool that runs others (§6, unchanged). §2.1, §4.1 and §5.1 are text the maintainer has not yet read. This record stays Draft until they have. |
 | 2026-11-24 | Accepted by the maintainer, who had read §2.1, §4.1 and §5.1 and the additions an independent review made to them. Asked "Do you accept RFC-4 as it now reads?" and "Does urzua's `on_unjudged: allow` option sit outside the hook rule?", they said: "I accept RFC, and yes allow option can be outside rule". RFC-1's rule on new JSON Schema keywords was proposed separately and is not part of this acceptance. |
+| 2026-11-24 | Amendment, accepted by the maintainer. Shown the new sentence in full with the rule on new JSON Schema keywords for RFC-1, they said: "Yes to both". §5.1 gains one case outside the rule: a hook that can tell, without running the tool, that it was called somewhere the tool does not govern. Read literally, the accepted text would have a machine-wide harness hook with no binary refuse every edit in every repository on that machine, including ones that never adopted the tool. urzua's ADR-89 already treats a session with no urzua configuration as ungoverned. A hook that cannot tell without the tool still blocks. |
 
 ## Non-goals
 
