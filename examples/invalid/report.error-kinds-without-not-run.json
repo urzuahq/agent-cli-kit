@@ -21,5 +21,7 @@
     "--ids",
     "<record>"
   ],
-  "error_kind": "usage"
+  "error_kinds": [
+    "usage"
+  ]
 }

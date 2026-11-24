@@ -11,6 +11,11 @@ import time
 
 FAULT = os.environ.get("FIXTURE_FAULT", "")
 NAME, VERSION = "fixturetool", "0.1.0"
+USAGE_KINDS = {
+    "error-kinds-empty": [],
+    "error-kinds-order": ["config", "usage"],
+    "error-kinds-repeat": ["usage", "usage"],
+}.get(FAULT, ["usage"])
 
 DESCRIBE = {
     "name": NAME,
@@ -83,7 +88,33 @@ DESCRIBE = {
             "scopes": [],
             "metrics": [],
             "stdin": None,
-            "args": [],
+            "args": [
+                {
+                    "name": "--now",
+                    "kind": "flag",
+                    "required": False,
+                    "repeatable": False,
+                    "requires_any": ["--ids", "--all"],
+                    "means": "apply without asking; needs the records named or all of them",
+                },
+                {
+                    "name": "--ids",
+                    "kind": "option",
+                    "type": "string",
+                    "required": False,
+                    "repeatable": True,
+                    "required_unless": ["--all"],
+                    "conflicts_with": ["--all"],
+                    "means": "the ids of the records to apply",
+                },
+                {
+                    "name": "--all",
+                    "kind": "flag",
+                    "required": False,
+                    "repeatable": False,
+                    "means": "apply every pending record",
+                },
+            ],
         },
         {
             "name": "serve",
@@ -150,8 +181,12 @@ def main():
             describe["args"][0]["type"] = "string"
         if FAULT == "top-requires":
             describe["args"][0]["requires"] = ["--nothing"]
-        if FAULT == "no-example":
+        if FAULT == "no-example" or FAULT.startswith("error-kinds"):
             del describe["commands"][2]["example"]
+        if FAULT == "requires-any-unknown":
+            describe["commands"][3]["args"][0]["requires_any"] = ["--nothing"]
+        if FAULT == "required-unless-required":
+            describe["commands"][3]["args"][1]["required"] = True
         if FAULT == "describe-duplicate":
             describe["commands"][0]["args"].append(describe["commands"][0]["args"][0])
         if FAULT == "describe-log":
@@ -214,7 +249,7 @@ def main():
         {
             "status": "not-run",
             "error": "the arguments are not ones this tool accepts",
-            "error_kind": "usage",
+            "error_kinds": USAGE_KINDS,
             **action(None, None, None, []),
         },
         2,

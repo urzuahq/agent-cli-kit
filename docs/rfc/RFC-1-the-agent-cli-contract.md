@@ -73,10 +73,10 @@ Every command that reports a result obeys these rules.
 
 - **Optional keys.** From version 1.1, `next_action_argv` (the same command as an array of its
   arguments, or null) and an `index` on each entry of `next_action_inputs`, which a 1.1 tool always
-  prints, and `error_kind` on a `not-run` report (`usage`, `config`, `environment` or `internal`).
-  RFC-4 defines them. `error` (string): present when `status` is `not-run` because the run could not
-  start. `notices`: an array of `{severity, subject, message}`. `schema_version`: an integer, the
-  tool's own report schema. `tool`: `{name, version}`.
+  prints, and `error_kinds` on a `not-run` report (an array of `usage`, `config`, `environment` and
+  `internal`, each kind that applies). RFC-4 defines them. `error` (string): present when `status`
+  is `not-run` because the run could not start. `notices`: an array of `{severity, subject,
+  message}`. `schema_version`: an integer, the tool's own report schema. `tool`: `{name, version}`.
 - **Unknown keys** are allowed and readers ignore them. This is what lets a tool keep its own fields
   beside the contract's.
 
@@ -281,6 +281,7 @@ urzua's current shape with those additions.
 | 2026-11-23 | Version 1.1, from RFC-3, accepted by the maintainer the same day: the run profile and its schema, `run` in the list of profiles, and an optional `check` on a finding. The Summary, §2, §3 and §6 say so. Nothing in the base layer or the gate profile changes. The run profile fixes its `status` words, by the maintainer's decision of the same day; `status` stays tool-defined in the base layer and the gate profile. |
 | 2026-11-24 | Brought into line with RFC-4, accepted by the maintainer on 2026-11-24, which completes version 1.1. §1 now says stderr is empty from 1.1, that the exit codes are those of a command that prints its report, and names `next_action_argv`, `index` and `error_kind`; §2 names `fix_argv`; §3 says `describe` declares a tool's inputs and fixes the `--version` line; §6 names the log-line schema and the conformance runner, which reverses this record's earlier deferral of one. A tool that prints `contract_version` `"1.0"` is held to this record as it stood at `v1.0.0`. |
 | 2026-11-24 | Amendment, accepted by the maintainer: new JSON Schema keywords. Asked about this rule together with an addition to RFC-4, they said: "Yes to both". §4 gains the rule that the schemas use a fixed list of keywords, checked in CI, and that adding one is announced to the consuming tools and ships in a release candidate first. The check and the README had carried it as practice since the keyword check was added. |
+| 2026-11-24 | §1 names `error_kinds`, a list, where it named `error_kind`, following the amendment to RFC-4 that the maintainer accepted the same day. |
 
 ## References
 

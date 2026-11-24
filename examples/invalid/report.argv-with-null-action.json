@@ -1,11 +1,13 @@
 {
   "status": "not-run",
   "error": "not a git repository",
-  "error_kind": "environment",
   "next_action": null,
   "next_action_reason": null,
   "next_action_argv": [
     "mytool"
   ],
-  "next_action_inputs": []
+  "next_action_inputs": [],
+  "error_kinds": [
+    "environment"
+  ]
 }
