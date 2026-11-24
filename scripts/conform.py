@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 """Check one tool against the agent CLI contract by running its own safe commands.
 
-usage: conform.py BINARY [--schemas DIR] [--timeout SECONDS]
+usage: conform.py BINARY [--schemas DIR] [--timeout SECONDS] [--require-run]
 
 Run it in the tool's own repository, against the tool's own binary. It runs
 `BINARY describe`, then every command `describe` marks safe and not exempt, in
 the current directory. It prints one gate report on stdout and exits 0 when the
 tool conforms, 1 when it does not, and 2 when the check could not run.
+
+A command that answers `not-run` conforms, and was not exercised. The report
+says so with a warning for each and a count in `examined`. With --require-run,
+a run in which no safe command got further than `not-run` fails.
 """
 import argparse
 import json
@@ -26,8 +30,8 @@ ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\+?=")
 findings = []
 
 
-def fail(rule, message, command=None):
-    finding = {"rule": f"conform/{rule}", "severity": "error", "message": message}
+def fail(rule, message, command=None, severity="error"):
+    finding = {"rule": f"conform/{rule}", "severity": severity, "message": message}
     if command is not None:
         finding["check"] = command
     findings.append(finding)
@@ -256,6 +260,7 @@ def main(arguments):
     parser.add_argument("binary")
     parser.add_argument("--schemas", default=str(pathlib.Path(__file__).resolve().parent.parent / "schemas"))
     parser.add_argument("--timeout", type=float, default=60)
+    parser.add_argument("--require-run", action="store_true")
     options = parser.parse_args(arguments)
     if not (math.isfinite(options.timeout) and options.timeout > 0):
         raise Usage("--timeout is a number of seconds greater than 0")
@@ -266,17 +271,18 @@ def main(arguments):
 
     env = dict(os.environ)
     done = run([binary, "describe"], timeout, env)
+    nothing = {"commands": 0, "exercised": 0}
     if done is None:
         fail("timeout", f"did not finish in {timeout:g} seconds", "describe")
-        return 0
+        return nothing
     describe = one_object(done.stdout)
     if describe is None or done.returncode != 0:
         fail("describe", f"describe exited {done.returncode} and did not print one JSON object")
-        return 0
+        return nothing
     for message in validate(schemas, "describe", {"describe": describe}).get("describe", []):
         fail("describe-schema", message)
     if findings:
-        return 0
+        return nothing
     strict = describe["contract_version"] != "1.0"
     log = describe.get("log") or {}
     if log.get("env") in env:
@@ -313,10 +319,18 @@ def main(arguments):
             for message in messages:
                 fail("report-schema", message, name)
         valid.update({name: ran[name] for name in of_profile if name not in errors})
+    exercised = 0
     for name, (command, argv, report, code) in valid.items():
         check_exit_code(command["profile"], report, code, name)
         if strict:
             check_commands_as_arguments(report, name)
+        if report["status"] == "not-run":
+            kind = report.get("error_kind", "no error_kind")
+            fail("not-run", f"answered not-run ({kind}), so it was not exercised", name, "warning")
+        else:
+            exercised += 1
+    if options.require_run and exercised == 0:
+        fail("nothing-ran", "no safe command got further than not-run")
 
     first = next((c["name"] for c in runnable if c["name"] in valid), None)
     if has_log and first is not None:
@@ -356,7 +370,7 @@ def main(arguments):
             fail("version-line", f"--version did not print exactly {expected!r} and exit 0")
         elif done.stderr:
             fail("stderr", "--version wrote to stderr")
-    return len(runnable)
+    return {"commands": len(runnable), "exercised": exercised}
 
 
 def emit(report, code):
@@ -382,21 +396,22 @@ def not_run(error, kind):
 
 if __name__ == "__main__":
     try:
-        commands = main(sys.argv[1:])
+        examined = main(sys.argv[1:])
     except CannotRun as error:
         not_run(str(error), error.kind)
     except Exception as error:
         not_run(f"the runner failed: {type(error).__name__}: {error}", "internal")
+    blocking = any(finding["severity"] == "error" for finding in findings)
     emit(
         {
-            "status": "fail" if findings else "pass",
-            "blocking": bool(findings),
+            "status": "fail" if blocking else "warn" if findings else "pass",
+            "blocking": blocking,
             "findings": findings,
-            "examined": {"commands": commands},
+            "examined": examined,
             "next_action": None,
             "next_action_reason": None,
             "next_action_argv": None,
             "next_action_inputs": [],
         },
-        1 if findings else 0,
+        1 if blocking else 0,
     )

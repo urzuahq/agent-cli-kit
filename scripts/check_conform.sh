@@ -54,6 +54,10 @@ expect log-invalid 1 "conform/log-changes-report"
 expect log-action 1 "conform/log-changes-report"
 expect top-requires 1 "conform/arg-name-unknown"
 expect index-float 0 ""
+expect no-example 0 "conform/not-run"
+expect nothing-runs 0 "conform/not-run"
+expect nothing-runs 1 "conform/not-run conform/nothing-ran" --require-run
+expect "" 0 "" --require-run
 
 not_run() {
   local label="$1" kind="$2" out status=0

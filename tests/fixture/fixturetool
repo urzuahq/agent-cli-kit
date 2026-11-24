@@ -74,6 +74,7 @@ DESCRIBE = {
                     "means": "the id of the thing to show",
                 }
             ],
+            "example": ["abc"],
         },
         {
             "name": "apply",
@@ -149,6 +150,8 @@ def main():
             describe["args"][0]["type"] = "string"
         if FAULT == "top-requires":
             describe["args"][0]["requires"] = ["--nothing"]
+        if FAULT == "no-example":
+            del describe["commands"][2]["example"]
         if FAULT == "describe-duplicate":
             describe["commands"][0]["args"].append(describe["commands"][0]["args"][0])
         if FAULT == "describe-log":
@@ -156,7 +159,7 @@ def main():
         json.dump(describe, sys.stdout)
         sys.stdout.write("\n")
         return
-    if args[:1] == ["check"]:
+    if args[:1] == ["check"] and FAULT != "nothing-runs":
         placeholder_index = 5 if FAULT == "index" else 3
         argv = ["fixturetool", "apply", "--ids", "<record>"]
         string = "fixturetool apply --ids <record>" if FAULT == "argv-bare" else "fixturetool apply --ids '<record>'"
@@ -203,8 +206,10 @@ def main():
         if FAULT == "index-float":
             report["next_action_inputs"][0]["index"] = 3.0
         emit(report, 0)
-    if args == ["status"]:
+    if args == ["status"] and FAULT != "nothing-runs":
         emit({"status": "idle", **action(None, None, None, [])}, 0)
+    if args[:1] == ["show"] and len(args) == 2 and FAULT != "nothing-runs":
+        emit({"status": "shown", "id": args[1], **action(None, None, None, [])}, 0)
     emit(
         {
             "status": "not-run",
