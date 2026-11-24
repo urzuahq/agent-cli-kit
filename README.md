@@ -86,15 +86,16 @@ before the release that carries it, and ships in a release candidate first.
 python3 scripts/conform.py path/to/your-tool
 ```
 
-Run it in the tool's own repository, in CI. It runs `describe`, then every command the tool marks
-`safe`, and checks that stdout is one JSON object valid for the command's profile, that stderr is
-empty (and, when the tool declares a log, that each line of it is one valid JSON object once it is
-turned on), that the exit code agrees with the report, and that each command printed as a string and
-as arguments is the same command. It skips commands declared `exempt` and commands not marked
-`safe`. A tool that prints `contract_version` `"1.0"` is checked only against what 1.0 required. It
-prints one report and exits 0, 1 or 2 like any other gate. It needs `python3` and either `uvx` or
-`pipx`. `--schemas DIR` points it at a vendored copy of the schemas, and `--timeout SECONDS` changes
-the limit for each command, which is 60.
+Run it in the tool's own repository, in CI: clone this repository at the commit in the vendored
+`VERSION` and run the script from that clone, with `--schemas` pointing at the vendored copy. It
+runs `describe`, then every command the tool marks `safe`, and checks that stdout is one JSON object
+valid for the command's profile, that stderr is empty (and, when the tool declares a log, that each
+line of it is one valid JSON object once it is turned on), that the exit code agrees with the
+report, and that each command printed as a string and as arguments is the same command. It skips
+commands declared `exempt` and commands not marked `safe`. A tool that prints `contract_version`
+`"1.0"` is checked only against what 1.0 required. It prints one report and exits 0, 1 or 2 like any
+other gate. It needs `python3` and either `uvx` or `pipx`. `--schemas DIR` points it at a vendored
+copy of the schemas, and `--timeout SECONDS` changes the limit for each command, which is 60.
 
 ## Run the check locally
 
