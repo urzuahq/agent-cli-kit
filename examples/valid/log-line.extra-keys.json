@@ -1,0 +1,7 @@
+{
+  "time": "2026-11-24T00:10:00.250Z",
+  "level": "debug",
+  "message": "rule ran",
+  "rule": "header.required-fields",
+  "duration_ms": 3
+}

@@ -48,11 +48,16 @@ existing consumer keeps working.
 
 Every command that reports a result obeys these rules.
 
-- **Output.** stdout is exactly one JSON object, including when the command fails. Everything else
-  goes to stderr. No flag is needed to get JSON. A command that streams or serves is exempt: a
-  long-running server, a line-per-event stream, a command whose product is a file or a page. Such a
-  command is declared `exempt` in `describe`.
+- **Output.** stdout is exactly one JSON object, including when the command fails in a way it can
+  report. No flag is needed to get JSON. A command that streams or serves, or that speaks a host's
+  protocol, is exempt: a long-running server, a line-per-event stream, a hook, a command whose
+  product is a file or a page. Such a command is declared `exempt` in `describe`.
+- **stderr.** In version 1.0, everything but the report went to stderr. From version 1.1 a command
+  that prints its report writes nothing to stderr, unless its caller asked for the tool's log.
+  RFC-4 gives the rule and what is apart from it.
 - **Exit codes.** `0`: ran, and nothing blocks. `1`: ran, and something blocks. `2`: could not run.
+  These are the exit codes of a command that prints its report on stdout. What a hook exits with
+  belongs to the host that called it, and RFC-4 says what that is.
 - **Required keys.**
 
   | Key | Type | Meaning |
@@ -66,7 +71,10 @@ Every command that reports a result obeys these rules.
   in `next_action`, always written `<...>`), `flag` (the option it belongs to, such as `--reason`)
   and `means` (what to put there).
 
-- **Optional keys.** `error` (string): present when `status` is `not-run` because the run could not
+- **Optional keys.** From version 1.1, `next_action_argv` (the same command as an array of its
+  arguments, or null) and an `index` on each entry of `next_action_inputs`, which a 1.1 tool always
+  prints, and `error_kind` on a `not-run` report (`usage`, `config`, `environment` or `internal`).
+  RFC-4 defines them. `error` (string): present when `status` is `not-run` because the run could not
   start. `notices`: an array of `{severity, subject, message}`. `schema_version`: an integer, the
   tool's own report schema. `tool`: `{name, version}`.
 - **Unknown keys** are allowed and readers ignore them. This is what lets a tool keep its own fields
@@ -93,7 +101,7 @@ A finding has required `rule` (a stable id), `severity` (`error`, `warning` or `
 `message`. It has optional `file` (repository-relative, or null), `line` and `column` (integers of
 at least 1, or null), `fix` (the tool's own command that fixes it), `fingerprint` (stable across
 runs for the same finding) and, from version 1.1, `check` (the name of the check that produced it,
-in a report that lists its checks).
+in a report that lists its checks) and `fix_argv` (the `fix` command as an array of its arguments).
 
 Whether a finding blocks is the tool's decision, reported only through `blocking` and the exit code.
 `status` stays tool-defined. Findings are open like reports: a tool may add keys.
@@ -112,11 +120,16 @@ Whether a finding blocks is the tool's decision, reported only through `blocking
   (`duration_ms`, `files`). A command may also state its `kind`: `lint`, `format`, `types`, `test`,
   `build`, `records` or `other`, the same words a receipt uses for a check
 
+From version 1.1, `describe` also declares the tool's inputs: `args` for the tool and for each
+command, `env`, `stdin`, `config`, and `log`, with a `protocol` on each `exempt` command. RFC-4
+defines them. A tool that prints `contract_version` `"1.0"` need not carry them.
+
 `describe` is not itself a base report. On success it prints the object above, with no `status` and
 no `next_action` keys, and exits 0. When it cannot run it behaves like any other command: it prints
 a `not-run` base report and exits 2. A reader tells the two apart by the exit code.
 
-`--help` and `--version` are exempt from the base layer. They print text for a person.
+`--help` and `--version` are exempt from the base layer. From version 1.1, `--version` prints
+exactly `<name> <version>` and a newline, and nothing an agent needs is only in `--help`.
 
 This record owns the `describe` field list. A tool may print other keys, as in any report, and one
 that wants a key every reader can rely on proposes it here.
@@ -187,13 +200,20 @@ A run that could not run still writes a receipt. Its `report` has `status` `not-
 ### 6. Conformance
 
 Conformance is two artifacts and no runner. `schemas/` holds JSON Schema 2020-12 files for the base
-report, the finding, the gate report, the run report, `describe` and the receipt. `examples/` holds
-a corpus: valid examples that must validate, and invalid examples that must not, each violating one
-rule and named for it. CI in this repository checks that the corpus behaves as stated.
+report, the finding, the gate report, the run report, `describe`, the receipt and one line of a
+tool's log. `examples/` holds a corpus: valid examples that must validate, and invalid examples that
+must not, each violating one rule and named for it. CI in this repository checks that the corpus
+behaves as stated.
 
 Each tool validates its own output against the schemas in its own tests. The contract does not
 execute other people's binaries: commands can write, and a runner that executes arbitrary commands
 is unsafe.
+
+From version 1.1 the kit also ships `scripts/conform.py`, which a tool runs in its own CI against
+its own binary. It runs only the commands that tool has declared `safe`, and checks what a schema
+cannot: that stderr is empty, that the exit code agrees with the report, and that a command printed
+as a string and as arguments is the same command. Passing it is part of conforming to 1.1. RFC-4
+defines it.
 
 **How a tool gets the schemas.** A tool vendors them: it commits a copy of `schemas/` from one
 release tag into its own repository, together with `SHA256SUMS` and a `VERSION` file holding the tag
@@ -250,6 +270,7 @@ urzua's current shape with those additions.
 |---|---|
 | 2026-11-23 | Accepted by the maintainer. Their words: "Move it to accepting? Let's unblock it". Asked directly which Status to record, they chose Accepted. The receipt (§5) stays a draft and the open questions stay open. |
 | 2026-11-23 | Version 1.1, from RFC-3, accepted by the maintainer the same day: the run profile and its schema, `run` in the list of profiles, and an optional `check` on a finding. The Summary, §2, §3 and §6 say so. Nothing in the base layer or the gate profile changes. The run profile fixes its `status` words, by the maintainer's decision of the same day; `status` stays tool-defined in the base layer and the gate profile. |
+| 2026-11-24 | Brought into line with RFC-4, accepted by the maintainer on 2026-11-24, which completes version 1.1. §1 now says stderr is empty from 1.1, that the exit codes are those of a command that prints its report, and names `next_action_argv`, `index` and `error_kind`; §2 names `fix_argv`; §3 says `describe` declares a tool's inputs and fixes the `--version` line; §6 names the log-line schema and the conformance runner, which reverses this record's earlier deferral of one. A tool that prints `contract_version` `"1.0"` is held to this record as it stood at `v1.0.0`. |
 
 ## References
 

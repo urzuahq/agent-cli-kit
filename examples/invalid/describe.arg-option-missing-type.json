@@ -1,0 +1,130 @@
+{
+  "name": "garita",
+  "version": "0.2.0",
+  "contract_version": "1.1",
+  "system": 0,
+  "args": [
+    {
+      "name": "--log",
+      "kind": "flag",
+      "required": false,
+      "repeatable": false,
+      "means": "write the log to stderr, one JSON object per line"
+    }
+  ],
+  "env": [],
+  "config": [
+    {
+      "path": ".garita/config.yaml",
+      "format": "yaml"
+    }
+  ],
+  "log": {
+    "arg": "--log"
+  },
+  "commands": [
+    {
+      "name": "run",
+      "profile": "run",
+      "safe": false,
+      "scopes": [
+        "base-ref"
+      ],
+      "metrics": [
+        "duration_ms"
+      ],
+      "stdin": null,
+      "args": [
+        {
+          "name": "checks",
+          "kind": "positional",
+          "type": "string",
+          "required": false,
+          "repeatable": true,
+          "means": "the names of the checks to run; all the trigger's checks when none is given"
+        },
+        {
+          "name": "--trigger",
+          "kind": "option",
+          "type": "string",
+          "required": false,
+          "repeatable": false,
+          "values": [
+            "commit",
+            "push",
+            "ci",
+            "merge"
+          ],
+          "means": "what started the run"
+        },
+        {
+          "name": "--base",
+          "kind": "option",
+          "required": false,
+          "repeatable": false,
+          "means": "the ref the change is compared with"
+        },
+        {
+          "name": "--files",
+          "kind": "option",
+          "type": "path",
+          "required": false,
+          "repeatable": true,
+          "conflicts_with": [
+            "--base"
+          ],
+          "means": "limit the run to these files"
+        },
+        {
+          "name": "files",
+          "kind": "positional",
+          "type": "path",
+          "required": false,
+          "repeatable": true,
+          "after_separator": true,
+          "means": "files whose names begin with a dash"
+        }
+      ]
+    },
+    {
+      "name": "doctor",
+      "profile": "run",
+      "safe": true,
+      "scopes": [],
+      "metrics": [],
+      "stdin": null,
+      "args": [],
+      "example": []
+    },
+    {
+      "name": "hooks install",
+      "profile": "run",
+      "safe": false,
+      "scopes": [],
+      "metrics": [],
+      "stdin": null,
+      "args": [
+        {
+          "name": "--replace",
+          "kind": "flag",
+          "required": false,
+          "repeatable": false,
+          "means": "replace a hook that another tool installed"
+        }
+      ]
+    },
+    {
+      "name": "hook",
+      "profile": "exempt",
+      "protocol": "harness-hook",
+      "safe": true,
+      "scopes": [],
+      "metrics": [],
+      "args": [],
+      "stdin": {
+        "format": "json",
+        "means": "the event the agent harness sends"
+      }
+    }
+  ]
+}

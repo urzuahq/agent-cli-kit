@@ -13,7 +13,12 @@
       "line": 1,
       "column": null,
       "fix": "mytool fix --apply",
-      "fingerprint": "header.required-fields:docs/rfc/RFC-4-example.md:Author"
+      "fingerprint": "header.required-fields:docs/rfc/RFC-4-example.md:Author",
+      "fix_argv": [
+        "mytool",
+        "fix",
+        "--apply"
+      ]
     },
     {
       "rule": "filename.title-consistency",
@@ -23,5 +28,12 @@
       "line": null
     }
   ],
-  "examined": {"files": 5}
+  "examined": {
+    "files": 5
+  },
+  "next_action_argv": [
+    "mytool",
+    "fix",
+    "--apply"
+  ]
 }
