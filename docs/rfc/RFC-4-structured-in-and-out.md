@@ -136,10 +136,11 @@ carries a usage block, a heading, or another tool's output.
 - **Why a command could not run.** A `not-run` report may carry `error_kind`, one of `usage` (the
   arguments were wrong), `config` (the configuration could not be loaded or is invalid),
   `environment` (something outside the tool is missing: a repository, a program, a directory) or
-  `internal` (the tool failed). When more than one applies, `error_kind` is the first of those
-  four, in that order, that does, and `error` names every reason. `error` stays one sentence. For `usage` it names the argument that
-  was wrong and carries no usage block; the inputs are in `describe`. A run report that is
-  `not-run` because a check's program could not start may carry `error_kind` beside its `checks`.
+  `internal` (the tool failed). When more than one applies, `error_kind` is the first of those four,
+  in that order, that does, and `error` names every reason. `error` stays one sentence. For `usage`
+  it names the argument that was wrong and carries no usage block; the inputs are in `describe`. A
+  run report that is `not-run` because a check's program could not start may carry `error_kind`
+  beside its `checks`.
 - **A wrapped tool's output.** In the run profile, each entry of `checks` may carry `output_tail`,
   the last 4,000 characters of the check's output, and `output`, the path of the full output: the
   same two keys a receipt's check has. A finding's `message` no longer carries them.

@@ -83,10 +83,9 @@ urzua's reports are unaffected.
 
 `scope` is an object with a required `kind`: `staged`, `changed`, `affected`, `all` or `named`.
 `named` is a run whose caller listed the files itself, whatever the trigger; the other four say how
-the runner chose them. It may carry
-`files`, an array of repository-relative paths, and `packages`, an array of package names. The same
-shape is the `scope` of a receipt's check, which the draft receipt schema already requires to be an
-object with a `kind`.
+the runner chose them. It may carry `files`, an array of repository-relative paths, and `packages`,
+an array of package names. The same shape is the `scope` of a receipt's check, which the draft
+receipt schema already requires to be an object with a `kind`.
 
 ### 3. Suppressed findings
 
