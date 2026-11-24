@@ -451,12 +451,12 @@ No JSON Schema keyword outside the checked list is needed.
 ### 12. What each tool changes
 
 **urzua**: ships `describe` with its inputs, `log` and a `protocol` for each `exempt` command; moves
-a panic's text to `error` and sets `error_kinds`; builds a usage error's message without the parser's
-usage block; removes the menu in `init`; drops the banner and closing line from its git hooks and
-the prose from its harness hook's missing-binary case; makes its git hooks exit 2 when the tool
-cannot run, with the records that decision touches, and its harness hook refuse in the one case it
-lets through today; builds every `next_action` from arguments, with `next_action_argv`, an `index`
-on each input and `fix_argv`, and quotes its placeholders one way; runs the runner in CI.
+a panic's text to `error` and sets `error_kinds`; builds a usage error's message without the
+parser's usage block; removes the menu in `init`; drops the banner and closing line from its git
+hooks and the prose from its harness hook's missing-binary case; makes its git hooks exit 2 when the
+tool cannot run, with the records that decision touches, and its harness hook refuse in the one case
+it lets through today; builds every `next_action` from arguments, with `next_action_argv`, an
+`index` on each input and `fix_argv`, and quotes its placeholders one way; runs the runner in CI.
 
 **garita**: extends its panic handler to every command; declares `log` in `describe`, and a
 `protocol` when it has an `exempt` command; sets `error_kinds`; moves captured output from `message`
