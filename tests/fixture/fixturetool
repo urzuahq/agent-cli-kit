@@ -147,6 +147,8 @@ def main():
             describe["commands"][0]["args"][0]["conflicts_with"] = ["--nothing"]
         if FAULT == "flag-type":
             describe["args"][0]["type"] = "string"
+        if FAULT == "top-requires":
+            describe["args"][0]["requires"] = ["--nothing"]
         if FAULT == "describe-duplicate":
             describe["commands"][0]["args"].append(describe["commands"][0]["args"][0])
         if FAULT == "describe-log":
@@ -193,6 +195,13 @@ def main():
             report["next_action_inputs"] = ["<record>"]
         if FAULT == "log-changes" and logging:
             report["notices"] = [{"severity": "info", "subject": "log", "message": "the log is on"}]
+        if FAULT == "log-invalid" and logging:
+            report["findings"] = 5
+        if FAULT == "log-action" and logging:
+            report["next_action"] = "fixturetool destroy --ids '<record>'"
+            report["next_action_argv"] = ["fixturetool", "destroy", "--ids", "<record>"]
+        if FAULT == "index-float":
+            report["next_action_inputs"][0]["index"] = 3.0
         emit(report, 0)
     if args == ["status"]:
         emit({"status": "idle", **action(None, None, None, [])}, 0)

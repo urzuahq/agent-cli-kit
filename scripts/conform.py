@@ -10,6 +10,7 @@ tool conforms, 1 when it does not, and 2 when the check could not run.
 """
 import argparse
 import json
+import math
 import os
 import pathlib
 import re
@@ -20,7 +21,7 @@ import tempfile
 
 VALIDATOR = "check-jsonschema==0.39.0"
 SCHEMA_OF_PROFILE = {"base": "report", "gate": "gate-report", "run": "run-report"}
-ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\+?=")
 
 findings = []
 
@@ -86,7 +87,9 @@ def validate(schemas, schema, instances):
 
 def run(argv, timeout, env):
     try:
-        return subprocess.run(argv, capture_output=True, text=True, timeout=timeout, env=env)
+        return subprocess.run(
+            argv, capture_output=True, encoding="utf-8", errors="replace", timeout=timeout, env=env
+        )
     except subprocess.TimeoutExpired:
         return None
     except OSError as error:
@@ -120,7 +123,7 @@ def split_one_process(string):
             elif char == "\\" and i + 1 < len(string) and string[i + 1] in '$`"\\':
                 word.append(string[i + 1])
                 i += 1
-            elif char in "$`":
+            elif char in "$`" or (char == "\\" and string[i + 1 : i + 2] == "\n"):
                 return None
             else:
                 word.append(char)
@@ -146,7 +149,7 @@ def split_one_process(string):
         return None
     if started:
         words.append("".join(word))
-    if words and ASSIGNMENT.match(string.lstrip()):
+    if not words or words[0] == "!" or ASSIGNMENT.match(string.lstrip()):
         return None
     return words
 
@@ -173,7 +176,7 @@ def check_describe(describe):
                 fail("arg-flag-type", f"{arg['name']} is a flag and has a type", name)
             for key in ("conflicts_with", "requires"):
                 for other in arg.get(key, []):
-                    if name is not None and other not in names:
+                    if other not in names:
                         fail("arg-name-unknown", f"{arg['name']} names {other} in {key}, which is not declared", name)
     log = describe.get("log")
     if log is None:
@@ -215,7 +218,7 @@ def check_commands_as_arguments(report, command):
         index = entry.get("index")
         if index is None:
             fail("input-index-missing", f"the input {entry['placeholder']} has no index", command)
-        elif argv is None or index >= len(argv) or argv[index] != entry["placeholder"]:
+        elif argv is None or index >= len(argv) or argv[int(index)] != entry["placeholder"]:
             fail("input-index-wrong", f"the element at index {index} is not {entry['placeholder']}", command)
     for finding in report.get("findings", []):
         if "fix" in finding and "fix_argv" not in finding:
@@ -226,15 +229,25 @@ def check_commands_as_arguments(report, command):
             fail("fix-argv-disagrees", f"the fix of {finding['rule']} is not its fix_argv", command)
 
 
-def shape(report, code):
-    """What must not change when the log is turned on. Durations and times may."""
+def stable(report, code):
+    """What the contract fixes in a report, leaving out what may differ between two
+    runs: durations, times, run ids and paths that carry them."""
     return (
         code,
+        sorted(report),
         report.get("status"),
         report.get("blocking"),
-        sorted(report),
-        len(report.get("findings", [])),
-        len(report.get("notices", [])),
+        report.get("next_action"),
+        report.get("next_action_argv"),
+        report.get("next_action_inputs"),
+        report.get("examined"),
+        report.get("error_kind"),
+        [
+            (f.get("rule"), f.get("severity"), f.get("message"), f.get("file"), f.get("line"), f.get("check"))
+            for f in report.get("findings", [])
+        ],
+        [(c.get("name"), c.get("kind"), c.get("status"), c.get("examined")) for c in report.get("checks", [])],
+        [(n.get("severity"), n.get("subject")) for n in report.get("notices", [])],
     )
 
 
@@ -244,6 +257,8 @@ def main(arguments):
     parser.add_argument("--schemas", default=str(pathlib.Path(__file__).resolve().parent.parent / "schemas"))
     parser.add_argument("--timeout", type=float, default=60)
     options = parser.parse_args(arguments)
+    if not (math.isfinite(options.timeout) and options.timeout > 0):
+        raise Usage("--timeout is a number of seconds greater than 0")
     schemas = pathlib.Path(options.schemas)
     binary, timeout = options.binary, options.timeout
     if not (schemas / "describe.schema.json").is_file():
@@ -326,7 +341,12 @@ def main(arguments):
                 for message in messages:
                     fail("log-line", f"{label} of the log: {message}", name)
             logged = one_object(done.stdout)
-            if logged is None or shape(logged, done.returncode) != shape(report, code):
+            schema = SCHEMA_OF_PROFILE[command["profile"]]
+            if logged is None:
+                fail("log-changes-report", "stdout is not one JSON object with the log on", name)
+            elif validate(schemas, schema, {name: logged}):
+                fail("log-changes-report", "the report is not valid with the log on", name)
+            elif stable(logged, done.returncode) != stable(report, code):
                 fail("log-changes-report", "the report or the exit code changed with the log on", name)
 
     if strict:

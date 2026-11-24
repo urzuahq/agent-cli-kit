@@ -22,6 +22,9 @@ SPLITS = {
     "tool ''": ["tool", ""],
     "tool  two   spaces": ["tool", "two", "spaces"],
     "tool a#b": ["tool", "a#b"],
+    "tool b=c": ["tool", "b=c"],
+    "tool 'two\nlines'": ["tool", "two\nlines"],
+    "tool\twith\ttabs": ["tool", "with", "tabs"],
 }
 REFUSED = [
     "tool apply --ids <record>",
@@ -45,6 +48,11 @@ REFUSED = [
     "tool 'unterminated",
     "tool (x)",
     "tool \\",
+    'tool "b\\\nc"',
+    "! tool",
+    "",
+    "   ",
+    "X+=1 tool",
 ]
 
 wrong = [f"{string!r} gave {conform.split_one_process(string)!r}" for string, argv in SPLITS.items()

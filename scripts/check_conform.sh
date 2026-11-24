@@ -50,6 +50,10 @@ expect describe-schema 1 "conform/describe-schema"
 expect arg-unknown 1 "conform/arg-name-unknown"
 expect flag-type 1 "conform/arg-flag-type"
 expect slow 1 "conform/timeout" --timeout 1
+expect log-invalid 1 "conform/log-changes-report"
+expect log-action 1 "conform/log-changes-report"
+expect top-requires 1 "conform/arg-name-unknown"
+expect index-float 0 ""
 
 not_run() {
   local label="$1" kind="$2" out status=0
@@ -65,6 +69,7 @@ not_run() {
 
 not_run "missing binary" environment tests/fixture/no-such-tool
 not_run "no arguments" usage
+not_run "a timeout of zero" usage "$tool" --timeout 0
 
 if python3 scripts/test_split.py; then
   echo "ok    conform, command splitting"

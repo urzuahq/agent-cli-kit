@@ -254,7 +254,8 @@ urzua's current shape with those additions.
 - What is the receipt's final shape?
 - When is a shared library justified? Proposed trigger: a second Rust tool would copy the same types
   verbatim.
-- When is a live conformance checker justified? Proposed trigger: a third conforming tool.
+- When is a live conformance checker justified? Answered: RFC-4 brought one forward for version
+  1.1, limited to a tool's own safe commands in its own CI.
 
 ## Non-goals
 
