@@ -313,9 +313,9 @@ four cannot state is rare. For one, the tool declares the weaker reading, says t
 argument's `means`, and answers a call that breaks it with a `not-run` report whose `error_kinds`
 holds `usage`. That is the fallback, not the usual route.
 
-Names are unique within a command together with the tool's top-level `args`, and a name in
-`conflicts_with` or `requires` is one of them. A schema cannot state either rule, so the runner
-checks both (§8).
+Names are unique within a command together with the tool's top-level `args`. A name in any of the
+four keys above is one of them, a list there is never empty, and an argument never names itself. A
+schema cannot state these rules, so the runner checks them (§8).
 
 Both tools said they can generate `args` from their argument definitions. What their command lines
 have that the first shape lacked is in the table above: nested commands, global options, exclusion
@@ -430,6 +430,8 @@ contract that stays put, and one settled 1.1 serves that better than a 1.1 follo
 - `describe.schema.json`: `args` at the top level and per command, `env`, `stdin`, `config`,
   `example`, `log` and `protocol`, each required as §6 and §5 say when `contract_version` is not
   `"1.0"`.
+- `describe.schema.json` also carries `requires_any` and `required_unless` on an argument, and
+  `run-report.schema.json` accepts `named` as a `scope.kind` (RFC-3).
 - `report.schema.json`: optional `error_kinds`; optional `next_action_argv`, null exactly when
   `next_action` is null; optional `index` on an entry of `next_action_inputs`. The example
   `report.next-action.json` quotes its placeholder.

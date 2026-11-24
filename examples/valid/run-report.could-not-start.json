@@ -13,5 +13,12 @@
   "next_action_reason": "the configuration could not be read",
   "next_action_inputs": [],
   "receipt": null,
-  "error": "cannot read .garita/config.yaml"
+  "error": "cannot read .garita/config.yaml",
+  "error_kinds": [
+    "config"
+  ],
+  "next_action_argv": [
+    "garita",
+    "doctor"
+  ]
 }

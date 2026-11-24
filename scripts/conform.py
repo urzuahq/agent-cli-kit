@@ -182,6 +182,8 @@ def check_describe(describe):
             if "required_unless" in arg and arg["required"]:
                 fail("arg-required-unless", f"{arg['name']} has required_unless and required true", name)
             for key in ("conflicts_with", "requires", "requires_any", "required_unless"):
+                if key in arg and (not arg[key] or arg["name"] in arg[key]):
+                    fail("arg-rule", f"{key} of {arg['name']} is empty or names the argument itself", name)
                 for other in arg.get(key, []):
                     if other not in names:
                         fail("arg-name-unknown", f"{arg['name']} names {other} in {key}, which is not declared", name)
@@ -212,6 +214,8 @@ def check_exit_code(profile, report, code, command):
 
 def check_error_kinds(report, command):
     """Only called on a report that already validated against its schema."""
+    if "error_kind" in report:
+        fail("error-kind-replaced", "the report prints error_kind, which error_kinds replaced", command)
     kinds = report.get("error_kinds")
     if kinds is not None and (not kinds or kinds != [kind for kind in ERROR_KINDS if kind in kinds]):
         fail("error-kinds", f"error_kinds is {kinds}: it is never empty, and is in the fixed order, each once", command)

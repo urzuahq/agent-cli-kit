@@ -181,10 +181,14 @@ def main():
             describe["args"][0]["type"] = "string"
         if FAULT == "top-requires":
             describe["args"][0]["requires"] = ["--nothing"]
-        if FAULT == "no-example" or FAULT.startswith("error-kinds"):
+        if FAULT == "no-example" or FAULT.startswith("error-kind"):
             del describe["commands"][2]["example"]
         if FAULT == "requires-any-unknown":
             describe["commands"][3]["args"][0]["requires_any"] = ["--nothing"]
+        if FAULT == "requires-any-empty":
+            describe["commands"][3]["args"][0]["requires_any"] = []
+        if FAULT == "required-unless-self":
+            describe["commands"][3]["args"][1]["required_unless"] = ["--ids"]
         if FAULT == "required-unless-required":
             describe["commands"][3]["args"][1]["required"] = True
         if FAULT == "describe-duplicate":
@@ -249,7 +253,7 @@ def main():
         {
             "status": "not-run",
             "error": "the arguments are not ones this tool accepts",
-            "error_kinds": USAGE_KINDS,
+            **({"error_kind": "usage"} if FAULT == "error-kind-old" else {"error_kinds": USAGE_KINDS}),
             **action(None, None, None, []),
         },
         2,
