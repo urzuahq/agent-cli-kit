@@ -83,7 +83,7 @@ before the release that carries it, and ships in a release candidate first.
 ## Check a tool against the contract (1.1)
 
 ```sh
-python3 scripts/conform.py path/to/your-tool
+python3 scripts/conform.py path/to/your-tool --require-run
 ```
 
 Run it in the tool's own repository, in CI: clone this repository at the commit in the vendored
@@ -94,8 +94,12 @@ line of it is one valid JSON object once it is turned on), that the exit code ag
 report, and that each command printed as a string and as arguments is the same command. It skips
 commands declared `exempt` and commands not marked `safe`. A tool that prints `contract_version`
 `"1.0"` is checked only against what 1.0 required. It prints one report and exits 0, 1 or 2 like any
-other gate. It needs `python3` and either `uvx` or `pipx`. `--schemas DIR` points it at a vendored
-copy of the schemas, and `--timeout SECONDS` changes the limit for each command, which is 60.
+other gate. A command that answers `not-run` conforms but was not exercised: the report carries a
+warning for each and counts the exercised ones in `examined`, and `--require-run` fails a run in
+which no safe command got further than `not-run`. Use the flag wherever the tool is set up to work,
+so that a broken fixture cannot pass unnoticed. It needs `python3` and either `uvx` or `pipx`.
+`--schemas DIR` points it at a vendored copy of the schemas, and `--timeout SECONDS` changes the
+limit for each command, which is 60.
 
 ## Run the check locally
 
