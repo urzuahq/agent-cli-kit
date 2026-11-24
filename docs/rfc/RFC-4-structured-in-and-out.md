@@ -291,6 +291,17 @@ rules a schema cannot carry, and deriving one is days of work for each.
 **An example.** A command may carry `example`, an array of the arguments of one invocation that is
 expected to run. The runner uses it (§8).
 
+**`describe` does not list itself.** Its answer is not a report, so it fits no profile. A reader
+gets the list by running it, and the runner runs it on its own.
+
+**What the shape cannot say.** `conflicts_with` and `requires` cover two arguments that exclude
+each other and one that needs another. A rule beyond that, such as an argument that is required
+unless another is given, or one that needs either of two others, is stated in the argument's
+`means`, and the argument is declared with the weaker of its two readings: `required` is false
+when anything can stand in for it. A tool declares such a rule whether its parser or its own code
+enforces it, and answers a call that breaks it with a `not-run` report whose `error_kind` is
+`usage`.
+
 Names are unique within a command together with the tool's top-level `args`, and a name in
 `conflicts_with` or `requires` is one of them. A schema cannot state either rule, so the runner
 checks both (§8).
@@ -453,6 +464,7 @@ accepted the three passages written from their answers (see Revisions).
 | 2026-11-23 | The maintainer answered the open questions, by voice. The transcription is rough; bracketed words are the relay's reading. "let's build the runner now. And it's going to be required for 1.1. Um, we can do STD [logging] on request. In fact, actually, we could do a structured logging output. [...] Next action should actually be structured. Maybe we just decide on that now! Yeah, let's standardize the [exit of the] hook. With the block. And yeah, let's decide on the system value is [zero]. And then I'll accept [RFC-4]." So: the runner is built now and passing it is required for 1.1 (§8, §9, unchanged); a log is allowed on request and is structured (§2.1, new; §2 had allowed none); a command is printed as its arguments in 1.1 (§4.1, new; it had been deferred); a hook that cannot run its tool blocks, for every tool (§5.1, new; §5 had left it to each tool); `system` is 0 for a tool that runs others (§6, unchanged). §2.1, §4.1 and §5.1 are text the maintainer has not yet read. This record stays Draft until they have. |
 | 2026-11-24 | Accepted by the maintainer, who had read §2.1, §4.1 and §5.1 and the additions an independent review made to them. Asked "Do you accept RFC-4 as it now reads?" and "Does urzua's `on_unjudged: allow` option sit outside the hook rule?", they said: "I accept RFC, and yes allow option can be outside rule". RFC-1's rule on new JSON Schema keywords was proposed separately and is not part of this acceptance. |
 | 2026-11-24 | Amendment, accepted by the maintainer. Shown the new sentence in full with the rule on new JSON Schema keywords for RFC-1, they said: "Yes to both". §5.1 gains one case outside the rule: a hook that can tell, without running the tool, that it was called somewhere the tool does not govern. Read literally, the accepted text would have a machine-wide harness hook with no binary refuse every edit in every repository on that machine, including ones that never adopted the tool. urzua's ADR-89 already treats a session with no urzua configuration as ungoverned. A hook that cannot tell without the tool still blocks. |
+| 2026-11-24 | **Proposed amendment, not yet accepted.** §6 gains two statements that both tools asked for while building `describe`. `describe` does not list itself among `commands`. And a rule between arguments that `conflicts_with` and `requires` cannot express is stated in `means`, with the argument declared by its weaker reading. Neither changes a schema or the runner, which already behave this way. |
 
 ## Non-goals
 
