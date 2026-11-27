@@ -138,10 +138,12 @@ carries a usage block, a heading, or another tool's output.
   not be loaded or is invalid), `environment` (something outside the tool is missing: a repository,
   a program, a directory) and `internal` (the tool failed). The array is never empty, names each
   kind once, and lists them in that order, so a reader that wants one reason takes the first. There
-  is one key and it is always an array, also when a single kind applies. `error` stays one sentence
-  and names every reason. For `usage` it names the argument that was wrong and carries no usage
-  block; the inputs are in `describe`. A run report that is `not-run` because a check's program
-  could not start may carry `error_kinds` beside its `checks`.
+  is one key and it is always an array, also when a single kind applies. No report prints
+  `error_kind`, the single key that `error_kinds` replaced: it is not an unknown key that readers
+  ignore, and the runner fails a report that carries it. `error` stays one sentence and names every
+  reason. For `usage` it names the argument that was wrong and carries no usage block; the inputs
+  are in `describe`. A run report that is `not-run` because a check's program could not start may
+  carry `error_kinds` beside its `checks`.
 - **A wrapped tool's output.** In the run profile, each entry of `checks` may carry `output_tail`,
   the last 4,000 characters of the check's output, and `output`, the path of the full output: the
   same two keys a receipt's check has. A finding's `message` no longer carries them.
@@ -313,9 +315,10 @@ four cannot state is rare. For one, the tool declares the weaker reading, says t
 argument's `means`, and answers a call that breaks it with a `not-run` report whose `error_kinds`
 holds `usage`. That is the fallback, not the usual route.
 
-Names are unique within a command together with the tool's top-level `args`. A name in any of the
-four keys above is one of them, a list there is never empty, and an argument never names itself. A
-schema cannot state these rules, so the runner checks them (§8).
+Names are unique within a command together with the tool's top-level `args`. A top-level argument
+has no single command, so the names in its four keys are top-level arguments only. A name in any of
+the four keys above is one of them, a list there is never empty, and an argument never names itself.
+A schema cannot state these rules, so the runner checks them (§8).
 
 Both tools said they can generate `args` from their argument definitions. What their command lines
 have that the first shape lacked is in the table above: nested commands, global options, exclusion
@@ -343,10 +346,11 @@ The kit ships a script, `scripts/conform.py`, that a tool runs in its own CI aga
 binary. It is given the path of the binary and runs every command in the directory it was started
 in. It does what an agent would do first, and checks the answers.
 
-1. It runs `<tool> describe` and validates the result against `describe.schema.json`. It then
-   checks what the schema cannot: that argument names are unique, that every name in
-   `conflicts_with`, `requires`, `requires_any` and `required_unless` exists, that an argument with
-   `required_unless` has `required` false, and that the flag or variable `log` names is declared.
+1. It runs `<tool> describe` and validates the result against `describe.schema.json`. It then checks
+   what the schema cannot: that argument names are unique, that every name in `conflicts_with`,
+   `requires`, `requires_any` and `required_unless` exists, that an argument with `required_unless`
+   has `required` false, that no list in those four keys is empty and no argument names itself, and
+   that the flag or variable `log` names is declared.
 2. For every command that `describe` marks `safe` and that is not `exempt`, it runs the command
    with the arguments in `example`, or with none. A command that needs an argument and has no
    `example` answers with a `not-run` report whose `error_kinds` holds `usage`, and that is a pass.
@@ -357,8 +361,10 @@ in. It does what an agent would do first, and checks the answers.
 4. For a tool that prints `contract_version` `"1.1"` it also checks, in every report, what the
    schema leaves optional or cannot state: `next_action_argv` is present, is not empty when it is
    not null, and is what splitting `next_action` as a POSIX shell gives; every entry of
-   `next_action_inputs` has an `index`, and the element there is the entry's `placeholder`; and
-   every finding with a `fix` has a `fix_argv` that agrees with it in the same way.
+   `next_action_inputs` has an `index`, and the element there is the entry's `placeholder`; no
+   report carries `error_kind`; `error_kinds`, when present, is not empty and names each kind once
+   in the order of §4; and every finding with a `fix` has a `fix_argv` that agrees with it in the
+   same way.
 5. If `describe` declares a `log`, it runs one safe command again with the log turned on, and
    checks that every line on stderr validates against `log-line.schema.json` and that stdout and
    the exit code are what they were with the log off.
@@ -479,6 +485,7 @@ accepted the three passages written from their answers (see Revisions).
 | 2026-11-24 | Accepted by the maintainer, who had read §2.1, §4.1 and §5.1 and the additions an independent review made to them. Asked "Do you accept RFC-4 as it now reads?" and "Does urzua's `on_unjudged: allow` option sit outside the hook rule?", they said: "I accept RFC, and yes allow option can be outside rule". RFC-1's rule on new JSON Schema keywords was proposed separately and is not part of this acceptance. |
 | 2026-11-24 | Amendment, accepted by the maintainer. Shown the new sentence in full with the rule on new JSON Schema keywords for RFC-1, they said: "Yes to both". §5.1 gains one case outside the rule: a hook that can tell, without running the tool, that it was called somewhere the tool does not govern. Read literally, the accepted text would have a machine-wide harness hook with no binary refuse every edit in every repository on that machine, including ones that never adopted the tool. urzua's ADR-89 already treats a session with no urzua configuration as ungoverned. A hook that cannot tell without the tool still blocks. |
 | 2026-11-24 | Amendments from the tools' first 1.1 builds, accepted by the maintainer. They chose each in turn: `describe` does not list itself among `commands` ("Leave it out"); rules between arguments get the keys `requires_any` and `required_unless`, so that no rule lives in prose, with text as the rare fallback ("Structured keys now"); and a `not-run` report says why with a list of every kind that applies ("A list of kinds"), which is `error_kinds`, replacing `error_kind`. Shown the two new passages, §4 and §6, they said: "I confirm both passages." All of it ships in `v1.1.0-rc.4`. |
+| 2026-11-27 | Amendments from an independent review of the `rc.4` runner, decided by the maintainer on 2026-11-25. On the replaced key they said: "We can do a breaking change on this one. No need for any migration. Let's just break it". §4 now says no report prints `error_kind`, which the runner already enforced on every 1.1 report. On a top-level argument's rules they said: "add a clause … [a tool-wide] argument names only tool-wide ones. Yeah, that sounds good with me." §6 now says so, and the runner already checked it. §8 now lists the runner's checks for empty and self-naming rules and for `error_kinds`. Shown the exact sentences, the maintainer replied: "Can you instruct agents garita and CLI to get all done and shipped to unblock my agent building the orchestrator flow". The org orchestrator read that as their confirmation of the wording and recorded it as such. It ships in `v1.1.0-rc.5`. |
 
 ## Non-goals
 
