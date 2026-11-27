@@ -78,7 +78,8 @@ Every command that reports a result obeys these rules.
   is `not-run` because the run could not start. `notices`: an array of `{severity, subject,
   message}`. `schema_version`: an integer, the tool's own report schema. `tool`: `{name, version}`.
 - **Unknown keys** are allowed and readers ignore them. This is what lets a tool keep its own fields
-  beside the contract's.
+  beside the contract's. The one exception is `error_kind`, which `error_kinds` replaced: a tool
+  that prints `contract_version` `"1.1"` never prints it (RFC-4 §4).
 
 `schemas/report.schema.json` encodes the two conditional rules: `next_action_reason` is null exactly
 when `next_action` is null, and `error` present requires `status` to be `not-run`.
@@ -282,6 +283,7 @@ urzua's current shape with those additions.
 | 2026-11-24 | Brought into line with RFC-4, accepted by the maintainer on 2026-11-24, which completes version 1.1. §1 now says stderr is empty from 1.1, that the exit codes are those of a command that prints its report, and names `next_action_argv`, `index` and `error_kind`; §2 names `fix_argv`; §3 says `describe` declares a tool's inputs and fixes the `--version` line; §6 names the log-line schema and the conformance runner, which reverses this record's earlier deferral of one. A tool that prints `contract_version` `"1.0"` is held to this record as it stood at `v1.0.0`. |
 | 2026-11-24 | Amendment, accepted by the maintainer: new JSON Schema keywords. Asked about this rule together with an addition to RFC-4, they said: "Yes to both". §4 gains the rule that the schemas use a fixed list of keywords, checked in CI, and that adding one is announced to the consuming tools and ships in a release candidate first. The check and the README had carried it as practice since the keyword check was added. |
 | 2026-11-24 | §1 names `error_kinds`, a list, where it named `error_kind`, following the amendment to RFC-4 that the maintainer accepted the same day with the words "I confirm both passages." |
+| 2026-11-27 | §1 makes one exception to the rule on unknown keys: a 1.1 tool never prints `error_kind`. This follows the amendment to RFC-4 §4 of the same day, which the maintainer decided with the words "Let's just break it". The org orchestrator read their later reply, "Can you instruct agents garita and CLI to get all done and shipped", as confirmation of the wording. |
 
 ## References
 

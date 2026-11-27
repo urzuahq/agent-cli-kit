@@ -189,6 +189,24 @@ def main():
             describe["commands"][3]["args"][0]["requires_any"] = []
         if FAULT == "required-unless-self":
             describe["commands"][3]["args"][1]["required_unless"] = ["--ids"]
+        rule_faults = {
+            "conflicts-with-empty": (3, 0, "conflicts_with", []),
+            "conflicts-with-self": (3, 0, "conflicts_with", ["--now"]),
+            "requires-empty": (3, 0, "requires", []),
+            "requires-self": (3, 0, "requires", ["--now"]),
+            "requires-any-self": (3, 0, "requires_any", ["--now"]),
+            "required-unless-empty": (3, 0, "required_unless", []),
+        }
+        if FAULT in rule_faults:
+            command, arg, key, names = rule_faults[FAULT]
+            describe["commands"][command]["args"][arg][key] = names
+        if FAULT == "top-rule-self":
+            describe["args"][0]["requires"] = ["--log"]
+        if FAULT == "top-names-command":
+            describe["args"][0]["conflicts_with"] = ["--all"]
+        if FAULT == "contract-1.0":
+            describe["contract_version"] = "1.0"
+            describe["args"][0]["requires"] = ["--log"]
         if FAULT == "required-unless-required":
             describe["commands"][3]["args"][1]["required"] = True
         if FAULT == "describe-duplicate":
@@ -246,7 +264,8 @@ def main():
             report["next_action_inputs"][0]["index"] = 3.0
         emit(report, 0)
     if args == ["status"] and FAULT != "nothing-runs":
-        emit({"status": "idle", **action(None, None, None, [])}, 0)
+        old_key = {"error_kind": "usage"} if FAULT in ("old-key-idle", "contract-1.0") else {}
+        emit({"status": "idle", **old_key, **action(None, None, None, [])}, 0)
     if args[:1] == ["show"] and len(args) == 2 and FAULT != "nothing-runs":
         emit({"status": "shown", "id": args[1], **action(None, None, None, [])}, 0)
     emit(
